@@ -1,0 +1,747 @@
+PARKEATE
+by Deepcompany
+PRODUCT REQUIREMENTS DOCUMENT
+Sistema de Inventario, Catálogo y Cotizaciones Comerciales
+Producto
+Versión
+Fecha
+Parkeate Inventory Hub
+v1.0
+Mayo 2026
+Propietario
+Stack
+Deploy
+Kevin Kilson — Deepcompany
+MongoDB · Python · React
+Vercel (Frontend + API)
+1. Visión y Contexto del Producto
+1.1 Problema que resuelve
+Parkeate opera un catálogo de equipos de estacionamiento (barreras, cámaras LPR, kiosks, sensores, redes, etc.) sin una plataforma centralizada. Hoy esa información vive en hojas de Excel desconectadas, lo que genera:
+Falta de trazabilidad del inventario real vs. disponible vs. en importación.
+Imposibilidad de generar propuestas comerciales profesionales desde el mismo sistema.
+Datos de proveedores (contacto, precio, envío, nacionalización) dispersos o incompletos.
+Cero integración entre el catálogo de equipos y el configurador comercial ya existente.
+1.2 Solución propuesta
+Un sistema web (SPA React + API FastAPI + MongoDB) desplegado en Vercel con tres módulos integrados que comparten un único repositorio de equipos:
+Módulo
+Función
+Inventario
+Vista tabular con búsqueda, filtros y panel de detalle completo por producto.
+Catálogo
+Vista visual tipo tienda con filtros por categoría. Cada card abre el detalle completo.
+Cotizaciones
+Carrito de equipos + configurador financiero (basado en HTML_PROPUESTA.html) + generación de propuesta PDF + envío por WhatsApp.
+2. Stakeholders y Usuarios
+Rol
+Quién
+Necesidad principal
+Product Owner
+Kevin Kilson — Deepcompany
+Gestionar el inventario y lanzar propuestas comerciales desde un solo sistema.
+Asesor Comercial
+Equipo Parkeate
+Crear cotizaciones rápidas y enviárselas al cliente en minutos.
+Cliente Final
+Operadores de estacionamiento
+Recibir una propuesta profesional en PDF con el análisis financiero completo.
+Administrador
+Kevin / Deepcompany Admin
+Editar productos, precios, proveedores y parámetros del sistema.
+3. Arquitectura del Sistema
+3.1 Stack tecnológico
+Capa
+Tecnología
+Justificación
+Frontend
+React 18 + Tailwind CSS
+SPA con routing cliente, componentes reutilizables, diseño responsivo.
+Backend / API
+FastAPI (Python 3.11+)
+API REST rápida, tipado con Pydantic, docs automáticos con Swagger.
+Base de datos
+MongoDB Atlas
+Esquema flexible para productos con campos opcionales (contacto, links, etc.). Escalable sin migraciones costosas.
+Deploy
+Vercel (Frontend) + Railway/Render (API)
+Deploy continuo desde GitHub. Serverless para el frontend.
+Generación PDF
+Puppeteer / WeasyPrint
+Renderiza la propuesta HTML existente a PDF descargable.
+Autenticación
+JWT + bcrypt
+Tokens de acceso por rol. Administrador vs. Asesor vs. Solo lectura.
+Seguridad datos
+AES-256 (campos sensibles)
+Cifrado de datos bancarios, contratos y documentos adjuntos.
+3.2 Colecciones MongoDB
+products
+Campo
+Tipo
+Descripción
+_id
+ObjectId
+ID único MongoDB (auto)
+sku
+String
+Código único. Ej: PKT-BAR-001
+name
+String
+Nombre del producto
+category
+String
+Categoría de la taxonomía definida
+brand
+String
+Marca del equipo
+origen
+Enum (VE|CN)
+Venezuela o China (importación)
+stock
+Integer
+Unidades disponibles actualmente
+stock_min
+Integer
+Umbral mínimo antes de alerta
+costo_base
+Decimal
+Precio base sin impuestos
+iva_pct
+Decimal
+Porcentaje IVA (0 si no aplica)
+envio_nac
+Decimal
+Costo envío nacional
+nacionalizacion
+Decimal
+Costo de importación/aduanas
+costo_total
+Decimal
+Campo calculado o ingresado
+descripcion
+String
+Descripción técnica completa
+link_compra
+String
+URL del proveedor o marketplace
+como_adquirir
+String
+Instrucciones de compra/contacto
+proveedor.nombre
+String
+Nombre del proveedor
+proveedor.direccion
+String
+Dirección física
+proveedor.telefono
+String (enc.)
+Teléfono — cifrado AES-256
+proveedor.email
+String (enc.)
+Email — cifrado AES-256
+tags
+[String]
+Etiquetas para búsqueda
+activo
+Boolean
+Visibilidad en catálogo
+created_at
+DateTime
+Fecha de creación
+updated_at
+DateTime
+Última modificación
+quotations
+Campo
+Tipo
+Descripción
+_id
+ObjectId
+ID único
+quote_number
+String
+Número correlativo. Ej: COT-2026-001
+status
+Enum
+draft | sent | accepted | rejected
+client.nombre
+String
+Nombre o empresa del cliente
+client.telefono
+String (enc.)
+WhatsApp del cliente — AES-256
+client.email
+String (enc.)
+Email — AES-256
+client.tipo_proyecto
+String
+Shopping center, residencial, etc.
+client.notas
+String
+Observaciones adicionales
+items
+[Object]
+Lista de productos {sku, name, qty, unit_price, subtotal}
+subtotal
+Decimal
+Suma de items
+iva_estimado
+Decimal
+16% sobre subtotal
+total
+Decimal
+subtotal + iva
+configurador
+Object
+Snapshot completo del form del configurador financiero
+configurador.cantidadPuestos
+Integer
+configurador.horasOperacion
+Integer
+configurador.tarifa
+Decimal
+configurador.downPaymentPercent
+Decimal
+configurador.tasaAnual
+Decimal
+configurador.igtfRate
+Decimal
+configurador.costoTotalProyecto
+Decimal
+pdf_url
+String
+URL del PDF generado (Vercel Blob / S3)
+created_by
+ObjectId
+Referencia al usuario asesor
+created_at
+DateTime
+sent_at
+DateTime
+Fecha de envío
+users
+Campo
+Tipo
+Descripción
+_id
+ObjectId
+name
+String
+Nombre del usuario
+email
+String
+Email (único, cifrado)
+password_hash
+String
+bcrypt hash
+role
+Enum
+admin | asesor | viewer
+activo
+Boolean
+created_at
+DateTime
+4. Módulos y Requerimientos Funcionales
+4.1 Módulo Inventario
+Vista principal del sistema. Permite al equipo interno gestionar, buscar y consultar el estado real del stock de equipos.
+4.1.1 Vista tabla (listado)
+Columnas visibles: SKU · Nombre · Categoría · Marca · Origen (badge VE/CN) · Stock (badge En stock / Pocas unidades / Sin stock) · Costo Total
+Búsqueda full-text sobre: nombre, SKU, marca, proveedor, descripción
+Filtro por Categoría (select con las 9 categorías)
+Filtro por Origen: Venezuela / China / Todos
+Filtro por Estado de stock: En stock / Pocas unidades / Sin stock / Todos
+Tarjetas de métricas resumen en la parte superior: Total equipos, Con stock, Sin stock, Venezuela, Importación
+Contador de resultados activos (Mostrando X de Y equipos)
+Clic en cualquier fila → abre Panel Detalle (sin navegación a nueva página)
+4.1.2 Panel detalle de producto
+Panel que se despliega debajo de la tabla al seleccionar un producto. Totalmente editable por el administrador.
+Encabezado: Nombre, SKU, Marca, Origen
+Sección Costos: Costo base · IVA (%) · Monto IVA calculado · Envío nacional · Nacionalización · Costo Total (auto-calculado)
+Sección Estado: badge dinámico (En stock / Pocas unidades / Sin stock) + número de unidades
+Sección Descripción: texto completo técnico
+Sección Proveedor: Nombre · Dirección · Teléfono · Email (con link mailto)
+Link de compra: URL clickeable
+Cómo adquirir: campo de texto libre con instrucciones
+Acciones: [+ Agregar a cotización] [Cotizar ahora → va al módulo Cotizaciones] [Editar] [Cerrar]
+4.1.3 Modo edición de producto
+Accesible desde el botón Editar del panel detalle. Solo disponible para roles admin y asesor.
+Todos los campos del panel detalle se convierten en inputs editables inline
+Campos numéricos con validación (no negativos, formato decimal correcto)
+Campo Costo Total: puede ser manual O auto-calculado (toggle)
+Estado de stock: selector (En stock / Pocas unidades / Sin stock) con umbral configurable
+Botones: [Guardar] [Cancelar] — Guardar llama PATCH /api/products/{sku}
+Confirmación visual de guardado con toast no intrusivo
+4.1.4 Agregar nuevo producto
+Botón [+ Nuevo producto] en la barra superior del Inventario
+Formulario modal con todos los campos de la colección products
+SKU: generado automáticamente con base en la categoría seleccionada (PKT-CAT-###) o ingresado manualmente
+Validación: SKU único, nombre requerido, categoría requerida
+Al guardar → POST /api/products → aparece en la tabla
+4.2 Módulo Catálogo
+Vista orientada a presentación del producto. Mismos datos, diseño visual tipo tienda. Puede compartirse como vista pública (sin login) en el futuro.
+4.2.1 Filtros por categoría
+10 botones pill: Todas · Barreras y Control · Cámaras y LPR · Lectores y Acceso · Kiosks y Autopago · Sensores · Redes y Conectividad · Electrónica y Cableado · Periféricos de Caja · Otros
+Filtro activo se resalta visualmente
+Al cambiar filtro: la grid se actualiza sin recarga de página
+4.2.2 Tarjeta de producto
+Muestra: Categoría · Nombre · Marca · Bandera de origen · Costo Total · Badge de estado · Botón [+ Cotizar]
+Clic en la tarjeta → abre Panel Detalle (idéntico al del módulo Inventario)
+Botón [+ Cotizar] en la tarjeta agrega al carrito sin abrir el detalle
+Hover: borde de color verde, sutil elevación
+4.2.3 Panel Detalle (catálogo)
+Idéntico al panel detalle del Inventario. Misma fuente de datos. Reaprovechar componente React.
+Desglose de costos (base, IVA, envío, nacionalización, total)
+Estado de stock
+Descripción técnica
+Datos de proveedor y contacto
+Link de compra
+Instrucciones de adquisición
+Acciones: [+ Agregar a cotización] [Cotizar ahora]
+4.3 Módulo Cotizaciones
+Módulo integrado que combina el carrito de equipos del inventario con el Configurador Comercial v4 (HTML_PROPUESTA.html). Todo es editable por el asesor.
+4.3.1 Carrito de equipos
+Equipos se agregan desde Inventario o Catálogo con botón [+ Cotizar]
+Badge con contador en la barra de navegación (visible en todo momento)
+Vista del carrito: listado con nombre, SKU, categoría, cantidad (ajustable ±), precio unitario, subtotal
+Botón eliminar por ítem
+Resumen: Subtotal · IVA estimado 16% · Total
+Carrito persiste en sessionStorage durante la sesión
+4.3.2 Datos del cliente
+Nombre / Empresa (requerido)
+Teléfono / WhatsApp
+Correo electrónico
+Tipo de proyecto: select (Shopping center / Edificio corporativo / Residencial / Hospital / Otro)
+Notas adicionales: textarea libre
+Todos los campos son editables antes de generar la propuesta
+4.3.3 Configurador financiero (integración HTML_PROPUESTA)
+Se integra el Configurador Comercial v4 como componente React embebido dentro del módulo Cotizaciones. Todos los campos son editables en tiempo real:
+Sección Datos e Ingresos:
+Nombre del cliente (sincronizado con datos del cliente)
+Días laborables · Horas de operación · Turnos · Tarifa por hora
+Cantidad de puestos · % de rotación
+Cálculo automático: ingresos por hora, día, semana, mes y año
+Sección Egresos:
+Sin Parkeate: colaboradores, salario, % pérdidas por errores, % pérdidas por robos
+Con Parkeate: colaboradores reducidos, % errores reducido
+Cálculo automático: ahorro anual y porcentaje de optimización
+Sección Proyecto:
+Autopago (cantidad × precio unitario), Componentes barreras, Instalación/Expendedores
+Equipos de servidor, SaaS anual, Aliados comerciales, Mantenimiento preventivo, Mano de obra
+Toggle Recargo adicional (% configurable con preview por línea)
+Costo total del proyecto auto-calculado · Resultado Año 1 y Año 2
+NUEVO: Los equipos del carrito se mapean automáticamente a las líneas del proyecto
+Sección Financiamiento:
+% Pago inicial · Tasa anual · IGTF
+Planes 12 y 24 meses con cuota, IGTF, totales
+Tabla de amortización expandible (función PMT)
+Sección Resumen:
+Comparativa Sin Parkeate vs. Con Parkeate Año 1 vs. Con Parkeate Año 2
+Payload JSON visible (para debug y futura integración)
+4.3.4 Vista Propuesta (ProposalView)
+Renderiza la propuesta comercial visual completa basada en el HTML_PROPUESTA.html existente. Incluye:
+Hero con KPIs: ingresos anuales, ahorro egresos, resultado año 1, resultado año 2
+Comparativa visual: Sin Parkeate vs. Con Parkeate (tarjetas rojo/azul/verde)
+Detalle del proyecto con desglose por partida
+Módulos del software y aplicaciones móviles con acordeón expandible
+Planes de financiamiento con selector 12/24 meses y tabla de amortización
+CTA final con costo total del proyecto y condiciones de pago inicial
+Logo Parkeate en encabezado (reemplazable por logo del cliente en versión futura)
+Todo el contenido es editable — se genera desde el estado del formulario
+4.3.5 Generación de PDF
+Botón [Generar PDF] en la vista de propuesta
+Backend (FastAPI) recibe el payload JSON del configurador
+Puppeteer renderiza el HTML de la propuesta con los datos inyectados
+PDF generado se almacena en Vercel Blob Storage
+Se devuelve URL temporal firmada (válida 7 días)
+Frontend ofrece: [Descargar PDF] y [Enviar por WhatsApp]
+4.3.6 Envío por WhatsApp
+Se usa WhatsApp Business API (Meta) o enlace wa.me con mensaje pre-construido
+Mensaje incluye: nombre del cliente, resumen de la propuesta, link al PDF
+El número de teléfono se toma del campo cliente.telefono
+Se registra sent_at en la cotización en MongoDB
+4.3.7 Gestión de cotizaciones
+Listado de cotizaciones guardadas con número, cliente, fecha, estado, total
+Estados: Borrador → Enviada → Aceptada / Rechazada
+Filtro por estado y búsqueda por nombre de cliente o número
+Clic en cotización → abre en modo edición o vista según estado
+Duplicar cotización para reutilizar como base de una nueva
+5. Especificación de la API REST (FastAPI)
+5.1 Base URL y autenticación
+Base URL
+https://api.parkeate.app/v1 (producción)  |  http://localhost:8000/v1 (desarrollo)
+
+Todos los endpoints (excepto /auth/login) requieren header: Authorization: Bearer {jwt_token}
+5.2 Endpoints — Productos
+Método
+Endpoint
+Rol mínimo
+Descripción
+GET
+/products
+viewer
+Listado paginado con filtros: ?q=&category=&origen=&stock_status=
+GET
+/products/{sku}
+viewer
+Detalle completo de un producto por SKU
+POST
+/products
+admin
+Crear nuevo producto. Body: ProductCreate schema
+PATCH
+/products/{sku}
+asesor
+Actualizar campos específicos (partial update)
+DELETE
+/products/{sku}
+admin
+Soft delete (activo: false)
+GET
+/products/stats
+asesor
+Métricas de inventario: totales por categoría, stock, origen
+5.3 Endpoints — Cotizaciones
+Método
+Endpoint
+Rol mínimo
+Descripción
+GET
+/quotations
+asesor
+Listado de cotizaciones con filtros: ?status=&client=
+GET
+/quotations/{id}
+asesor
+Detalle completo de una cotización
+POST
+/quotations
+asesor
+Crear cotización. Genera quote_number correlativo.
+PATCH
+/quotations/{id}
+asesor
+Actualizar campos (status, items, configurador, cliente)
+POST
+/quotations/{id}/pdf
+asesor
+Generar PDF. Devuelve {pdf_url, expires_at}
+POST
+/quotations/{id}/send
+asesor
+Marcar como enviada. Registra sent_at.
+POST
+/quotations/{id}/duplicate
+asesor
+Duplica la cotización como nuevo borrador
+5.4 Endpoints — Auth y Usuarios
+Método
+Endpoint
+Rol mínimo
+Descripción
+POST
+/auth/login
+público
+Email + password → devuelve JWT (exp: 24h)
+POST
+/auth/refresh
+viewer
+Renueva el token JWT
+GET
+/users
+admin
+Listado de usuarios
+POST
+/users
+admin
+Crear usuario con rol
+PATCH
+/users/{id}
+admin
+Actualizar usuario (nombre, rol, activo)
+6. User Stories
+Épica 1 — Inventario
+ID
+Historia de usuario
+US-01
+Como asesor, quiero buscar un equipo por nombre o SKU para encontrarlo rápidamente sin desplazarme por toda la lista.
+US-02
+Como asesor, quiero filtrar el inventario por categoría, origen y estado de stock para ver solo los equipos relevantes para un proyecto.
+US-03
+Como asesor, quiero hacer clic en un equipo y ver todos sus detalles (costos, proveedor, instrucciones) sin salir de la vista de inventario.
+US-04
+Como admin, quiero editar el precio, stock y datos de proveedor de cualquier equipo directamente desde el panel de detalle.
+US-05
+Como admin, quiero crear un nuevo producto con SKU auto-generado para mantener la nomenclatura consistente.
+US-06
+Como admin, quiero recibir una alerta visual cuando el stock de un equipo está por debajo del mínimo configurado.
+Épica 2 — Catálogo
+ID
+Historia de usuario
+US-07
+Como asesor, quiero ver el catálogo como tarjetas visuales para tener una mejor visión del portfolio al mostrarle opciones a un cliente.
+US-08
+Como asesor, quiero filtrar el catálogo por categoría con un clic para enfocarme en una familia de productos.
+US-09
+Como asesor, quiero abrir el detalle de un equipo desde el catálogo para ver todos los datos antes de cotizarlo.
+US-10
+Como asesor, quiero agregar un equipo a la cotización directamente desde su tarjeta sin tener que abrir el detalle.
+Épica 3 — Cotizaciones
+ID
+Historia de usuario
+US-11
+Como asesor, quiero ver todos los equipos que agregué al carrito con sus cantidades y precios para revisar antes de continuar.
+US-12
+Como asesor, quiero ajustar la cantidad de cada equipo en el carrito para reflejar el requerimiento exacto del proyecto.
+US-13
+Como asesor, quiero completar los datos del cliente (nombre, teléfono, tipo de proyecto) para personalizar la cotización.
+US-14
+Como asesor, quiero ingresar los parámetros operativos del estacionamiento (puestos, tarifa, horas) para que el sistema calcule automáticamente la rentabilidad.
+US-15
+Como asesor, quiero ver la comparativa financiera (Sin Parkeate vs. Con Parkeate Año 1 y 2) para argumentar el ROI al cliente.
+US-16
+Como asesor, quiero configurar el plan de financiamiento (% inicial, tasa, IGTF, plazo 12/24 meses) y ver la cuota mensual calculada automáticamente.
+US-17
+Como asesor, quiero ver la propuesta completa en formato visual (premium dark) antes de enviársela al cliente.
+US-18
+Como asesor, quiero generar un PDF de la propuesta para poder enviárselo al cliente por cualquier canal.
+US-19
+Como asesor, quiero enviar la propuesta directamente por WhatsApp con un mensaje predefinido y el link al PDF.
+US-20
+Como asesor, quiero guardar la cotización como borrador para continuar editándola después.
+US-21
+Como asesor, quiero ver el historial de cotizaciones con su estado (Enviada, Aceptada, Rechazada) para hacer seguimiento.
+US-22
+Como asesor, quiero duplicar una cotización existente para usarla como base de una nueva propuesta similar.
+7. Diseño y Experiencia de Usuario
+7.1 Principios de diseño
+Todo es editable: ningún dato debe ser solo lectura para el rol administrador.
+Cero re-cargas de página: toda la interacción es en-memoria (SPA). Los paneles de detalle se abren inline.
+Persistencia de carrito: sessionStorage mantiene el carrito activo durante la sesión.
+Dos modos visuales: Inventario (funcional, denso) y Catálogo (visual, presentable). Mismos datos, diferente layout.
+Propuesta de cliente: diseño premium dark (azul oscuro + amarillo Bebas Neue) heredado del HTML_PROPUESTA.html.
+7.2 Paleta de colores y tipografía
+Token
+Hex
+Uso
+parkeate-blue
+#224299
+Primario, CTAs, encabezados
+parkeate-dark
+#162B6B
+Fondos oscuros de propuesta
+parkeate-yellow
+#F8C410
+Acento, títulos propuesta
+parkeate-green
+#22B573
+Estados positivos, totales
+parkeate-red
+#E84545
+Alertas, sin stock
+Texto cuerpo
+DM Sans 14px / 400
+Interfaz administrativa
+Títulos propuesta
+Bebas Neue — 40-66px
+Propuesta comercial
+7.3 Estados de stock (reglas de negocio)
+Estado
+Condición
+Visual
+En stock
+stock > stock_min
+Badge verde · Muestra cantidad
+Pocas unidades
+0 < stock ≤ stock_min
+Badge amarillo · Muestra cantidad con advertencia
+Sin stock
+stock = 0
+Badge rojo · Sugiere consultar importación
+8. Flujos Principales
+8.1 Flujo: Crear cotización desde el catálogo
+Usuario abre el Módulo Catálogo desde la barra de navegación.
+Selecciona una categoría con el filtro pill (ej. Barreras y Control).
+Hace clic en [+ Cotizar] en la tarjeta del equipo → se agrega al carrito, badge del contador se actualiza.
+Repite el proceso para otros equipos de otras categorías.
+Hace clic en el ícono del carrito o en el tab Cotizar.
+Ajusta cantidades en el carrito si es necesario.
+Completa los datos del cliente.
+Navega a la sección Configurador y ajusta los parámetros del estacionamiento.
+Revisa el resumen comparativo y el plan de financiamiento.
+Hace clic en [Ver Propuesta] → se renderiza la vista ProposalView.
+Hace clic en [Generar PDF] → PDF listo para descarga o envío.
+Hace clic en [Enviar por WhatsApp] → se abre WhatsApp con mensaje y link pre-cargado.
+La cotización se guarda automáticamente con estado 'sent'.
+8.2 Flujo: Editar un producto del inventario
+Admin accede al Módulo Inventario.
+Busca el producto por nombre o SKU.
+Hace clic en la fila → se abre el Panel Detalle.
+Hace clic en [Editar] → todos los campos se vuelven inputs.
+Modifica precio, stock, datos de proveedor o cualquier campo.
+Hace clic en [Guardar] → llamada PATCH /api/products/{sku}.
+Toast de confirmación, panel regresa a modo lectura con datos actualizados.
+9. Seguridad y Control de Acceso
+9.1 Matriz de permisos
+Acción
+admin
+asesor
+viewer
+Ver inventario y catálogo
+✓
+✓
+✓
+Ver detalle de producto
+✓
+✓
+✓
+Crear cotización
+✓
+✓
+✗
+Generar y enviar PDF
+✓
+✓
+✗
+Editar producto (precio, stock, proveedor)
+✓
+✓
+✗
+Crear / eliminar producto
+✓
+✗
+✗
+Gestionar usuarios
+✓
+✗
+✗
+9.2 Cifrado AES-256
+Campos cifrados en MongoDB: proveedor.telefono, proveedor.email, client.telefono, client.email
+La clave de cifrado se almacena en variable de entorno AES_SECRET_KEY (nunca en código)
+El descifrado ocurre solo en el servidor antes de enviar al frontend autenticado
+Los campos cifrados nunca se exponen en logs ni en respuestas de error
+10. Criterios de Aceptación por Módulo
+Inventario
+La búsqueda retorna resultados en < 300ms para un inventario de hasta 1,000 productos.
+Los filtros se combinan (AND): al aplicar categoría + origen + stock, la tabla muestra solo los que cumplen los tres.
+El panel detalle muestra el costo total calculado correctamente: (costo_base × (1 + iva_pct)) + envio_nac + nacionalizacion.
+Al editar y guardar, los cambios se reflejan inmediatamente en la tabla sin recargar la página.
+El SKU auto-generado sigue el patrón PKT-{CAT}-{NNN} y es verificado como único antes de guardar.
+Catálogo
+El filtro por categoría actualiza la grid en < 100ms (filtrado en cliente).
+El botón [+ Cotizar] en la tarjeta agrega el producto al carrito y muestra confirmación visual por 1.5 segundos.
+El panel detalle del catálogo muestra datos idénticos a los del inventario (misma fuente de verdad).
+Cotizaciones
+El carrito persiste durante la sesión (sessionStorage): si el usuario navega entre módulos y vuelve, los ítems siguen ahí.
+Todos los cálculos del configurador (PMT, amortización, egresos, resultados) son idénticos a los del HTML_PROPUESTA.html existente.
+El PDF generado es visualmente fiel al ProposalView renderizado en pantalla.
+El número de cotización es correlativo y único: COT-{YYYY}-{NNN}.
+El campo cliente.telefono y cliente.email se cifran en MongoDB con AES-256.
+El envío por WhatsApp abre la app con el mensaje y el link pre-cargados correctamente.
+11. Roadmap de Desarrollo
+Fase
+Entregable
+Alcance
+Fase 1
+Base de datos + API
+Colecciones MongoDB, FastAPI endpoints CRUD de productos, autenticación JWT, seed con los 50 productos del inventario actual.
+Fase 2
+Módulo Inventario
+Frontend React: tabla con filtros, búsqueda, métricas, panel detalle, modo edición inline, creación de producto.
+Fase 3
+Módulo Catálogo
+Vista grid con filtros pill, tarjetas, panel detalle reutilizado del inventario. Botón + Cotizar.
+Fase 4
+Módulo Cotizaciones
+Carrito, datos del cliente, integración del Configurador v4 como componente React, ProposalView.
+Fase 5
+PDF + WhatsApp
+Generación PDF con Puppeteer en el backend, Vercel Blob Storage, enlace wa.me, registro de sent_at.
+Fase 6
+Historial + Roles
+Listado de cotizaciones, estados, duplicar, gestión de usuarios y roles (admin/asesor/viewer).
+Fase 7
+Optimización
+Alertas de stock mínimo, exportación Excel, dashboard de métricas, preparación vista pública del catálogo.
+12. Taxonomía y Datos Semilla
+12.1 Categorías del sistema
+Barreras y Control
+Cámaras y LPR
+Lectores y Acceso
+Kiosks y Autopago
+Sensores
+Redes y Conectividad
+Electrónica y Cableado
+Periféricos de Caja
+Otros
+12.2 Nomenclatura SKU
+Patrón: PKT-{CAT}-{NNN}
+Prefijo
+Categoría
+Ejemplo
+BAR
+Barreras y Control
+PKT-BAR-001 · Barrera ZKTeco BGM1060L/R
+CAM
+Cámaras y LPR
+PKT-CAM-001 · Cámara Domo V380
+LEC
+Lectores y Acceso
+PKT-LEC-001 · Antenas RFID UHF
+KIO
+Kiosks y Autopago
+PKT-KIO-001 · Kiosk X 24"
+SEN
+Sensores
+PKT-SEN-001 · Sensor de Masa Prointe
+RED
+Redes y Conectividad
+PKT-RED-001 · Cable UTP CAT5e
+ELE
+Electrónica y Cableado
+PKT-ELE-001 · ESP32 WROOM
+PER
+Periféricos de Caja
+PKT-PER-001 · Monitor Táctil AON
+OTR
+Otros
+PKT-OTR-001 · Sin categoría específica
+13. Notas Técnicas para el LLM Desarrollador
+Instrucción clave para el desarrollador
+Este PRD está diseñado para ser entregado íntegramente a un LLM (Claude, GPT-4, Cursor AI). Cada sección contiene suficiente contexto para que el modelo pueda implementar el módulo correspondiente sin ambigüedades. Los schemas de MongoDB, endpoints API y criterios de aceptación son directamente convertibles a código.
+13.1 Estructura de carpetas sugerida (monorepo)
+Ruta
+Contenido
+/frontend/src/components/
+Inventory, Catalog, Quotation, Shared (ProductDetailPanel, CartBadge)
+/frontend/src/pages/
+InventoryPage, CatalogPage, QuotationPage, QuotationListPage
+/frontend/src/store/
+cartStore.js (Zustand o Context), quotationStore.js
+/frontend/src/api/
+products.js, quotations.js, auth.js (axios wrappers)
+/backend/app/routers/
+products.py, quotations.py, auth.py, users.py
+/backend/app/models/
+product.py, quotation.py, user.py (Pydantic schemas)
+/backend/app/services/
+crypto.py (AES-256), pdf.py (Puppeteer), whatsapp.py
+/backend/app/db/
+mongodb.py (conexión Atlas), seed.py (datos iniciales)
+13.2 Componente ProductDetailPanel
+Este componente se comparte entre Inventario y Catálogo. Recibe un objeto product y un modo (view | edit). En modo view muestra la información. En modo edit convierte cada campo en un input controlado. Debe incluir:
+Props: product (objeto), mode ('view'|'edit'), onSave(updatedProduct), onAddToCart(product), onClose()
+Costo total: calculado como (costo_base * (1 + iva_pct)) + envio_nac + nacionalizacion. Puede ser override manual.
+Estado de stock: determinado por lógica: stock===0 → 'Sin stock', stock<=stock_min → 'Pocas unidades', else → 'En stock'.
+13.3 Integración del Configurador Comercial
+El HTML_PROPUESTA.html es un componente React standalone con estado interno (useState, useMemo). Para integrarlo:
+Extraer el componente App() y ProposalView() como archivos .jsx separados.
+El form.state inicial se pre-carga con los datos del cliente de la cotización y el costo total del carrito de equipos (mapeado a componentesBarreras o el campo más apropiado).
+Al hacer clic en [Guardar cotización], el estado completo del form se serializa como configurador: {} en el documento de MongoDB.
+Al recuperar una cotización guardada, el form se restaura desde ese snapshot.
+13.4 Generación de PDF
+El endpoint POST /quotations/{id}/pdf en FastAPI debe:
+Recuperar la cotización de MongoDB con todos sus datos.
+Inyectar el payload JSON en el template HTML de la propuesta.
+Lanzar Puppeteer headless para renderizar el HTML y exportar a PDF.
+Subir el PDF a Vercel Blob Storage con nombre: COT-{quote_number}-{client_name}.pdf
+Devolver: { pdf_url: '...', expires_at: '...' }
+Parkeate by Deepcompany · PRD v1.0 · Generado Mayo 2026 · Kevin Alexander Kilson Guevara, CEO KOVER

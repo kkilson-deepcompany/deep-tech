@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens: Swiss High Contrast (Azul Profundo + Verde Dinámico) */
+@layer base {
+  :root {
+    /* Surfaces */
+    --background: 0 0% 100%;            /* #FFFFFF */
+    --foreground: 0 0% 20%;             /* #333333 */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 20%;
+    --muted: 0 0% 96%;                  /* #F5F5F5 */
+    --muted-foreground: 0 0% 40%;       /* #666666 */
+
+    /* Brand */
+    --primary: 211 100% 24%;            /* #003D7A Azul Profundo */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 211 100% 24%;
+    --accent: 138 100% 39%;             /* #00C853 Verde Dinámico */
+    --accent-foreground: 0 0% 100%;
+
+    /* Semantic */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --info: 212 100% 40%;               /* #0066CC */
+    --success: 138 100% 39%;
+    --warning: 38 92% 50%;
+
+    /* Form */
+    --border: 220 13% 91%;              /* gray-200 */
+    --input: 220 13% 91%;
+    --ring: 212 100% 40%;               /* focus ring azul claro */
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222 14% 8%;
+    --foreground: 0 0% 95%;
+    --card: 222 14% 11%;
+    --card-foreground: 0 0% 95%;
+    --popover: 222 14% 11%;
+    --popover-foreground: 0 0% 95%;
+    --muted: 222 14% 14%;
+    --muted-foreground: 220 9% 65%;
+    --primary: 211 80% 65%;
+    --primary-foreground: 222 14% 8%;
+    --secondary: 222 14% 14%;
+    --secondary-foreground: 0 0% 95%;
+    --accent: 138 70% 50%;
+    --accent-foreground: 222 14% 8%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 95%;
+    --info: 212 90% 60%;
+    --success: 138 70% 50%;
+    --warning: 38 92% 55%;
+    --border: 222 14% 20%;
+    --input: 222 14% 20%;
+    --ring: 212 90% 60%;
+  }
+
+  * { @apply border-border; }
+  html, body, #root { @apply h-full; }
+  body {
+    @apply bg-background text-foreground antialiased font-sans;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+  }
+  h1, h2, h3, h4 { @apply font-heading tracking-tight; }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "deep.tech",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun --filter @deep/web dev",
+    "build": "bun --filter @deep/web build",
+    "test": "bun --filter '*' test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "db:generate": "bun --filter @deep/db generate",
+    "db:migrate": "bun --filter @deep/db migrate",
+    "db:studio": "bun --filter @deep/db studio"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@types/node": "^22.10.0",
+    "eslint": "^9.18.0",
+    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.18",
+    "prettier": "^3.4.2",
+    "prettier-plugin-tailwindcss": "^0.6.9",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.19.0"
+  },
+  "packageManager": "bun@1.1.42"
+}

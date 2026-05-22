@@ -1,0 +1,4 @@
+- [Project: deep.tech HR migration](project_deep_tech.md) — migración stack: CRA+FastAPI+Mongo → Vite+React+TS+Supabase+Drizzle. F0–F3 + F5 hechos; F4 casi completo (solo falta Google Calendar — necesita credenciales OAuth del usuario).
+- [Stack decisions](project_stack.md) — Vite, no Next; Supabase puro (opción A); Vercel deploy; Bun en WSL.
+- [Env constraints](deep_tech_env_constraints.md) — el entorno no alcanza la DB (5432 bloqueado); `bun install` en /mnt/c rompe los .bin.
+- [User profile](user.md) — usa Windows + Claude Code en WSL (bun en ~/.bun/bin); prefiere respuestas directas en español.

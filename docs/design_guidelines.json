@@ -1,0 +1,156 @@
+{
+  "project_info": {
+    "name": "Deepcompany HR System",
+    "type": "enterprise_saas_dashboard",
+    "language": "es",
+    "stack": ["React", "FastAPI", "MongoDB"],
+    "file_extension": ".js"
+  },
+  "theme": {
+    "archetype": "4_Swiss_High_Contrast",
+    "description": "Authority, clarity, and function-first tailored for an enterprise HR platform.",
+    "mode": "light"
+  },
+  "colors": {
+    "primary": {
+      "hex": "#003D7A",
+      "name": "Azul Profundo",
+      "usage": ["buttons", "headings", "primary_text", "active_nav_indicator", "header_accent"]
+    },
+    "accent": {
+      "hex": "#00C853",
+      "name": "Verde Dinamico",
+      "usage": ["calls_to_action", "interactive_elements", "success_states", "primary_ctas"]
+    },
+    "background": {
+      "hex": "#FFFFFF",
+      "name": "Blanco",
+      "usage": ["main_background", "cards", "modals", "dropdowns"]
+    },
+    "surface_alt": {
+      "hex": "#F5F5F5",
+      "name": "Gris Claro",
+      "usage": ["alternate_backgrounds", "sidebar", "kanban_columns", "table_headers"]
+    },
+    "text_main": {
+      "hex": "#333333",
+      "name": "Gris Oscuro",
+      "usage": ["body_text", "table_data", "main_labels"]
+    },
+    "text_muted": {
+      "hex": "#666666",
+      "name": "Gris Neutro",
+      "usage": ["secondary_text", "placeholders", "helper_text", "breadcrumbs"]
+    },
+    "info_link": {
+      "hex": "#0066CC",
+      "name": "Azul Claro",
+      "usage": ["links", "info_alerts", "inline_actions"]
+    },
+    "security": {
+      "badge_bg": "#E8F5E9",
+      "badge_text": "#1B5E20"
+    }
+  },
+  "typography": {
+    "fonts": {
+      "heading": "Plus Jakarta Sans",
+      "body": "Manrope",
+      "mono": "JetBrains Mono"
+    },
+    "scales": {
+      "h1": "text-4xl tracking-tight font-bold text-[#003D7A]",
+      "h2": "text-2xl tracking-tight font-semibold text-[#003D7A]",
+      "h3": "text-xl tracking-tight font-medium text-[#003D7A]",
+      "h4": "text-lg font-medium text-[#333333]",
+      "body": "text-base font-normal text-[#333333]",
+      "small": "text-sm text-[#666666]",
+      "tiny_label": "text-xs uppercase tracking-[0.2em] font-bold text-[#666666]"
+    }
+  },
+  "layout_and_spacing": {
+    "strategy": "Control Room Grid",
+    "rules": [
+      "Mobile-first grids defaulting to grid-cols-1, scaling to md:grid-cols-3 or lg:grid-cols-4 for KPI cards",
+      "Generous internal padding in containers: use p-6 or p-8 inside cards with borders",
+      "Use #F5F5F5 for application shells (like sidebar or main wrapper bg) and #FFFFFF for content panels",
+      "Never center-align data-heavy views. Left-align text and tables for scanability.",
+      "Cardless or subtle borders: max rounded-md (6px-8px radius). Flat aesthetic."
+    ],
+    "structure": {
+      "sidebar": "Fixed left, w-64, bg-[#F5F5F5] or bg-white with border-r border-gray-200. Contains 7 main modules with Lucide icons.",
+      "topbar": "Sticky top, h-16, bg-white border-b border-gray-200. Contains User Profile, Notifications (with badge counter), and Global Search.",
+      "content_area": "bg-[#F5F5F5] p-6 lg:p-8 min-h-screen flex flex-col gap-6"
+    }
+  },
+  "components": {
+    "shadcn_rules": [
+      "Use pure .js components. Avoid .tsx.",
+      "Override default borders to 1px solid #E5E7EB, avoiding heavy box-shadows on resting states.",
+      "Buttons: rounded-md. Primary CTA bg-[#00C853] text-white hover:bg-[#00A844]. Standard action bg-[#003D7A] text-white hover:bg-[#002B59].",
+      "Tables: Left-aligned, no alternating row colors (too noisy), use border-b border-gray-100.",
+      "Inputs/Forms: Flat inputs with 1px border, focus:ring-2 focus:ring-[#0066CC]"
+    ],
+    "custom_patterns": {
+      "kpi_card": "bg-white p-6 border border-gray-100 rounded-md shadow-sm. Large metric text-3xl font-bold text-[#003D7A]. Accent icon in #00C853.",
+      "status_chip": "Inline flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium. Use color semantic mapping (e.g. green for Contratado, yellow for En revisión).",
+      "kanban_column": "w-80 flex-shrink-0 flex flex-col gap-4 bg-[#F5F5F5] p-4 rounded-md h-[calc(100vh-200px)] overflow-y-auto",
+      "kanban_card": "bg-white p-4 border border-gray-200 rounded-md shadow-sm cursor-grab hover:shadow-md hover:border-[#0066CC] transition-all",
+      "security_badge": "Fixed element in sidebar footer or login screen showing Lucide Lock icon: 'Secured by AES-256 Encryption'. Font text-xs text-[#666666]."
+    }
+  },
+  "pages": {
+    "login": {
+      "layout": "Split screen. Left: Modern corporate office image (overlay with #003D7A/40). Right: Login form in white panel.",
+      "features": "Email/Password fields, Google Auth button, AES-256 Security badge below submit CTA. Submit CTA is #00C853."
+    },
+    "dashboard": {
+      "layout": "Grid heavy. 4-column KPI row. 2-column wide layout for Charts (Funnel) and Alerts list.",
+      "kpis": ["Active Colaboradores", "Nómina Total", "Vacantes Abiertas", "Entrevistas Semana"],
+      "widgets": ["Candidate Funnel Chart", "Alerts List (Contracts expiring <30d, Trial periods <15d)"]
+    },
+    "colaboradores": {
+      "layout": "Data table view. Advanced filters at top. 'Cost View' toggle for financial perspective.",
+      "interactions": "Clicking a row opens a right-side Drawer (Sheet component) with full Colaborador profile detail."
+    },
+    "candidatos": {
+      "layout": "Horizontal scrolling Kanban Board.",
+      "stages": ["Pendiente", "En revisión", "Entrevista", "Evaluación", "Oferta", "Contratado", "Rechazado"],
+      "interactions": "Drag and drop cards. Click card opens modal with CV/Documentos."
+    },
+    "vacantes": {
+      "layout": "Tabs to switch between 'List View' and 'Kanban View' by status."
+    },
+    "entrevistas": {
+      "layout": "Calendar Agenda View (main) + List View (sidebar). Includes Google Meet link buttons (#0066CC text)."
+    },
+    "documentos": {
+      "layout": "Digital file explorer style (Expediente digital). Includes 'Share Public Form Link' button with copy to clipboard functionality."
+    },
+    "contratos": {
+      "layout": "Generator wizard layout + PDF Preview pane (2-column layout). List view with renewal alerts."
+    },
+    "organigrama": {
+      "layout": "Interactive tree/node map. Editable drag-and-drop nodes using custom SVG or canvas-based flow UI (like React Flow if available, else CSS boxes)."
+    }
+  },
+  "testing": {
+    "required_attributes": "All interactive elements MUST have data-testid (e.g., data-testid='login-submit-btn', data-testid='sidebar-candidatos-link')"
+  },
+  "motion": {
+    "rules": "Minimalist micro-interactions. Use 0.2s ease transitions for hover states. Staggered list entrances for table rows.",
+    "hover_states": "Buttons and links must explicitly shift text/bg color. Cards slightly lift (-translate-y-0.5) and gain shadow-md."
+  },
+  "media": {
+    "icons": "Use 'lucide-react'. Default size 20px for nav, 16px for buttons, 24px for KPI headers.",
+    "login_background": "https://images.pexels.com/photos/7108269/pexels-photo-7108269.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+  },
+  "instructions_to_main_agent": [
+    "Ensure ALL text is in Spanish.",
+    "Do NOT use TypeScript files (.tsx). ONLY use JavaScript (.js or .jsx).",
+    "Enforce the exact color hex codes provided in the user constraints.",
+    "Place the AES-256 security badge in the Login form and Sidebar bottom.",
+    "Kanban dragging logic should be mockable via state if a library is not provided.",
+    "The primary action button must ALWAYS be Verde Dinámico (#00C853), standard actions Azul Profundo (#003D7A)."
+  ]
+}

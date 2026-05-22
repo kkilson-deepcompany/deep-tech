@@ -1,0 +1,463 @@
+DEEPCOMPANY
+Product Requirements Document
+MÓDULO DE FINANZAS
+Gestión Presupuestaria, Proyecciones e Ingresos con Alertas y Recordatorios
+Versión
+v1.0
+Fecha
+Mayo 2026
+Autor
+Kevin Guevara
+Estado
+Borrador
+1. RESUMEN EJECUTIVO
+El Módulo de Finanzas es una pieza central de la plataforma web de Deepcompany. Su propósito es dotar a los equipos directivos y administrativos de una herramienta integral para gestionar presupuestos corporativos y de PyMEs, proyectar ingresos y egresos, monitorear la ejecución financiera mensual, y recibir alertas y recordatorios automáticos asociados a fechas críticas de pago, cierre contable y revisión presupuestaria.
+Objetivo principal: Centralizar la planificación financiera (OpEx / CapEx), el seguimiento de proyecciones vs. realidad, y la gestión de pagos con recordatorios automáticos.
+Usuarios objetivo: CEO, CFO, Directores de área, Coordinadores de Operaciones y Finanzas.
+Metodologías soportadas: Top-Down, Bottom-Up, Zero-Based Budgeting, Rolling Forecast.
+Cobertura: Presupuesto corporativo y PyME (con enfoque en entornos de alta volatilidad como Venezuela 2026).
+2. CONTEXTO Y PROBLEMA
+2.1 Contexto del Negocio
+Deepcompany opera múltiples líneas de negocio (Parkeate, G-Store Omnicanal, Historial, Fyrespot, entre otras) bajo una misma estructura corporativa. Cada unidad genera egresos que deben consolidarse mensualmente para evaluar la salud financiera global. La ausencia de un módulo centralizado obliga al equipo a gestionar presupuestos en hojas de cálculo dispersas, sin visibilidad unificada ni control de fechas de pago.
+2.2 Problema Principal
+No existe una vista consolidada de OpEx vs. CapEx por unidad de negocio.
+Las proyecciones de ingresos se actualizan manualmente, generando desfases entre la proyección y la realidad.
+No hay un sistema de recordatorios para fechas de pago a proveedores, nómina, impuestos (SENIAT / IGTF) ni obligaciones regulatorias.
+La metodología de Rolling Forecast no está sistematizada; se aplica de forma ad hoc.
+La distribución de egresos por categoría (nómina, SaaS, marketing, reservas, impuestos) carece de trazabilidad histórica.
+3. OBJETIVOS Y MÉTRICAS DE ÉXITO
+Objetivo
+Descripción
+KPI Meta
+OBJ-01
+Centralizar presupuesto corporativo y PyME en una sola plataforma
+100% de unidades de negocio incorporadas en 30 días post-lanzamiento
+OBJ-02
+Automatizar el seguimiento de Proyección vs. Realidad mensual
+Cierre financiero mensual < 2 días hábiles
+OBJ-03
+Implementar Rolling Forecast trimestral
+Desviación media < 10% entre proyección y realidad
+OBJ-04
+Sistema de alertas y recordatorios de pagos
+0 pagos perdidos por falta de notificación
+OBJ-05
+Visibilidad de flujo de caja en tiempo real
+Reporte de cash flow disponible en < 30 segundos
+OBJ-06
+Clasificación OpEx / CapEx por egreso
+Cobertura del 100% de partidas presupuestarias
+4. USUARIOS Y ROLES
+Rol
+Perfil
+Permisos Clave
+Acceso a Alertas
+CEO / Director General
+Alta dirección
+Vista global, aprobación presupuestal, validación Top-Down
+Todas las alertas críticas
+CFO / Director Financiero
+FP&A / Planeación Financiera
+Creación y cierre de presupuesto, aprobación de variaciones, carga de realidad
+Alertas financieras + pagos
+Director de Área
+Ventas, IT, Operaciones
+Carga de propuesta Bottom-Up, consulta de su área, solicitudes de partida nueva
+Alertas de su área
+Coord. de Operaciones
+Administración / RRHH
+Carga de egresos operativos, marcado de pagos como ejecutados, gestión de recordatorios
+Recordatorios de pago
+Auditor / Visualizador
+Control interno / externo
+Solo lectura, exportación de reportes
+Sin alertas
+5. ALCANCE FUNCIONAL — MÓDULOS Y FUNCIONALIDADES
+5.1 Gestión de Presupuesto (OpEx / CapEx)
+Creación de presupuesto anual con apertura mensual.
+Clasificación de cada partida como OpEx (operativo) o CapEx (inversión).
+Soporte para tres metodologías: Top-Down, Bottom-Up y Zero-Based Budgeting.
+Flujo de aprobación: Director de área → FP&A → CEO. Cada paso con fecha límite y notificación.
+Bloqueo de partidas aprobadas; solo el CFO puede reabrir con justificación auditada.
+Historial de versiones del presupuesto por ciclo fiscal.
+5.2 Proyección de Ingresos — Tabla Horizontal
+La vista principal de ingresos es una tabla horizontal con los 12 meses del año en columnas. Para cada mes se muestra:
+Proyección (calculada con crecimiento mensual configurable, por defecto +15%).
+Realidad (monto efectivamente recibido, cargado manualmente o via integración contable).
+Diferencia = Realidad − Proyección (positiva en verde, negativa en rojo).
+Ejemplo visual del comportamiento esperado:
+Mes
+Proyección (USD)
+Realidad (USD)
+Diferencia (USD)
+Enero
+$25,928.70
+$25,928.70
+$0.00
+Febrero
+$28,521.57
+$80,602.28
++$52,080.71
+Marzo
+$31,373.73
+$27,386.48
+-$3,987.25
+Abril
+$34,511.10
+$27,386.48
+-$7,124.62
+Mayo
+$37,962.21
+$40,912.08
++$2,949.87
+Junio
+$43,656.54 (+15%)
+— (pendiente)
+—
+El porcentaje de crecimiento mensual proyectado es configurable por el CFO.
+Los meses futuros sin realidad cargada quedan en estado "Pendiente".
+Dashboard con gráfica de líneas dobles (Proyección vs. Realidad) y barras de variación.
+5.3 Gestión de Egresos por Categoría
+El sistema organiza los egresos en las siguientes categorías configurables:
+Categoría
+Subcategorías principales
+Tipo
+Nómina y RRHH
+Salarios, bonos, carga prestacional, CEP 9%
+OpEx
+Operaciones y Tecnología
+SaaS, servidores, automatización, mantenimiento
+OpEx
+Marketing y Ventas
+Publicidad, branding, relaciones públicas, fuerza de ventas
+OpEx
+Desarrollo / R&D
+Desarrollo de producto, investigación, Desredalab
+CapEx / OpEx
+Administración
+Compras, finanzas, legal, marcas, administración general
+OpEx
+Infraestructura
+Espacios, maquinaria, equipos, importación, fabricación
+CapEx
+Comercio / Mercancía
+Mercancía, G-Store, dropshipping, proveedores
+OpEx / CapEx
+Internacionalización
+Expansión de mercados, homologaciones, trade marketing
+CapEx
+Reservas e Inversiones
+Reserva de contingencia, inversiones financieras
+CapEx
+Impuestos y Tasas
+Impuestos efectivos, IGTF, tasas y comisiones, SENIAT
+OpEx
+Líneas de negocio con seguimiento de egreso individual:
+Parkeate, G-Store Omnicanal, G-Store Autopartes, App de fuerza de ventas
+Sistema de restaurantes, hospitalidad, torres corporativas, centros comerciales
+Sistema POS, G-Store Dropshipping, Deepyshop, Fyrespot
+Solución Proveedores, Solución Trademarketing, SuperApp, Desredalab, Desarrollo a terceros
+5.4 Rolling Forecast Trimestral
+Al cerrar cada mes, el sistema propone automáticamente agregar el mismo mes del año siguiente al horizonte de planificación.
+El CFO recibe una tarea de "Actualizar pronóstico" con fecha límite al 5to día hábil del mes siguiente.
+Se genera un reporte de "Forecast vs. Budget original" para detectar desviaciones estructurales.
+Historial de ajustes al forecast con autor, fecha y motivo.
+5.5 Sistema de Alertas y Recordatorios de Pagos ★
+Este es el componente diferenciador del módulo. Cada egreso programado puede tener asociadas fechas, recordatorios y responsables.
+5.5.1 Tipos de Alertas
+Tipo de Alerta
+Descripción
+Canal
+Recordatorio de pago
+Notifica con X días de anticipación la fecha de vencimiento de un pago a proveedor, nómina, impuesto o servicio
+Email + notificación in-app
+Alerta de variación
+Se dispara cuando la diferencia real vs. proyectada supera un umbral configurable (ej. ±15%)
+Email + in-app + Slack
+Cierre mensual
+Recordatorio al CFO de cargar la realidad antes del día 5 de cada mes
+Email + in-app
+Vencimiento presupuestal
+Alerta cuando una partida ha consumido más del 80% de su asignación mensual
+In-app + email al director
+Aprobación pendiente
+Flujo de aprobación con recordatorio si no se responde en 48 horas
+Email + in-app
+Impuesto / Regulatorio
+Fechas fijas de declaración SENIAT, IGTF, CEP, contribuciones patronales
+Email + in-app (crítica)
+Forecast no actualizado
+Si al día 5 del mes no se actualizó el rolling forecast, alerta escalada al CEO
+Email urgente
+5.5.2 Configuración de un Recordatorio de Pago
+Nombre del pago / concepto.
+Fecha de vencimiento (picker de calendario).
+Monto estimado (USD o VES con tasa de cambio del día).
+Responsable de ejecutar el pago.
+Recordatorios previos: configurable (ej. 7 días antes, 3 días antes, el día de vencimiento).
+Estado: Programado → En revisión → Pagado / Vencido.
+Adjuntar comprobante de pago al marcar como ejecutado.
+Recurrencia: única, mensual, quincenal, trimestral, anual.
+5.5.3 Calendario de Pagos
+Vista de calendario (mensual / semanal) con todos los pagos programados.
+Código de colores: verde (pagado), amarillo (próximo), rojo (vencido), gris (programado futuro).
+Exportación del calendario a PDF o iCal para integración con Google Calendar.
+Filtros por área, tipo de pago, responsable o estado.
+6. ÉPICAS Y USER STORIES
+ÉPICA F-01: Presupuesto y Estructura OpEx/CapEx
+ID
+User Story
+Prioridad
+F-01-US-01
+Como CFO, quiero crear el presupuesto anual dividido por meses y clasificado en OpEx/CapEx para tener visibilidad estructural del gasto.
+Alta
+F-01-US-02
+Como Director de área, quiero cargar mi propuesta Bottom-Up con justificación por partida para que FP&A la evalúe.
+Alta
+F-01-US-03
+Como CEO, quiero fijar el límite Top-Down por área para anclar las negociaciones presupuestales.
+Alta
+F-01-US-04
+Como CFO, quiero aplicar Zero-Based Budgeting en partidas seleccionadas para eliminar gastos sin retorno justificado.
+Media
+F-01-US-05
+Como auditor, quiero ver el historial de versiones del presupuesto con cambios aprobados para tener trazabilidad completa.
+Media
+ÉPICA F-02: Proyección de Ingresos
+ID
+User Story
+Prioridad
+F-02-US-01
+Como CFO, quiero ver la tabla horizontal de Proyección / Realidad / Diferencia por mes para evaluar el desempeño de ingresos.
+Alta
+F-02-US-02
+Como CFO, quiero configurar el porcentaje de crecimiento mensual proyectado para ajustarlo según el contexto de mercado.
+Alta
+F-02-US-03
+Como CEO, quiero ver la proyección de utilidad (ingresos − egresos) por mes en la misma vista para tomar decisiones estratégicas.
+Alta
+F-02-US-04
+Como Director Comercial, quiero cargar la realidad de ingresos de cada línea de negocio para que se refleje en el consolidado.
+Media
+ÉPICA F-03: Gestión de Egresos
+ID
+User Story
+Prioridad
+F-03-US-01
+Como Coordinadora de Operaciones, quiero registrar egresos por categoría con su monto y fecha para mantener el control presupuestal.
+Alta
+F-03-US-02
+Como CFO, quiero ver el desglose de egresos por línea de negocio (Parkeate, G-Store, Fyrespot, etc.) para analizar la rentabilidad individual.
+Alta
+F-03-US-03
+Como Director, quiero ver en tiempo real el % de ejecución de mi presupuesto de egresos para gestionar el saldo disponible.
+Alta
+F-03-US-04
+Como CFO, quiero registrar la reserva de contingencia como partida explícita para que sea visible en el flujo de caja.
+Media
+ÉPICA F-04: Alertas y Recordatorios de Pagos
+ID
+User Story
+Prioridad
+F-04-US-01
+Como Coordinadora de Operaciones, quiero programar un recordatorio de pago con fecha, monto y responsable para no perder ningún vencimiento.
+Alta
+F-04-US-02
+Como CFO, quiero recibir alerta automática cuando una partida de egreso supere el 80% de su presupuesto mensual para tomar acción preventiva.
+Alta
+F-04-US-03
+Como CEO, quiero recibir alerta cuando la variación real vs. proyectada supere el ±15% para actuar sobre la desviación.
+Alta
+F-04-US-04
+Como Coordinadora, quiero ver un calendario de pagos con código de colores para identificar de un vistazo los pagos vencidos, próximos y ejecutados.
+Alta
+F-04-US-05
+Como CFO, quiero configurar recordatorios recurrentes para pagos fijos (nómina quincenal, SaaS mensual, impuestos trimestrales) para no configurarlos cada vez.
+Alta
+F-04-US-06
+Como Coordinadora, quiero adjuntar el comprobante de pago al marcar un egreso como ejecutado para tener evidencia auditable.
+Media
+F-04-US-07
+Como cualquier usuario, quiero exportar el calendario de pagos a iCal/PDF para integrarlo con mi agenda personal.
+Media
+ÉPICA F-05: Rolling Forecast y Reportes
+ID
+User Story
+Prioridad
+F-05-US-01
+Como CFO, quiero actualizar el Rolling Forecast trimestral con un flujo guiado para mantener el horizonte de planificación siempre activo.
+Alta
+F-05-US-02
+Como CEO, quiero un reporte ejecutivo mensual con proyección de gastos, ingresos y utilidad para presentarlo al board.
+Alta
+F-05-US-03
+Como CFO, quiero exportar cualquier reporte en PDF o Excel para compartirlo con stakeholders externos.
+Media
+F-05-US-04
+Como Director, quiero ver el comparativo forecast vs. presupuesto original para entender la magnitud de los desvíos acumulados.
+Media
+7. REQUISITOS NO FUNCIONALES
+Categoría
+Requisito
+Detalle
+Seguridad
+Cifrado AES-256
+Todos los datos financieros, presupuestos, comprobantes y registros bancarios se almacenan con AES-256. Acceso por roles con JWT y sesiones auditadas.
+Rendimiento
+Tiempo de respuesta
+Cualquier vista de dashboard o tabla debe cargar en < 2 segundos para conjuntos de datos de hasta 12 meses con 50 partidas.
+Disponibilidad
+Uptime
+SLA mínimo de 99.5% de disponibilidad mensual.
+Escalabilidad
+Multi-empresa
+El módulo debe soportar múltiples entidades jurídicas (Deepcompany LLC Delaware, entidades locales) bajo el mismo tenant.
+Auditoría
+Log de cambios
+Toda modificación a presupuesto, realidad, forecast o pago queda registrada con usuario, timestamp y valor anterior/nuevo.
+Exportación
+Formatos
+PDF, XLSX, iCal. Sin dependencia de servicios de terceros para exportación básica.
+Notificaciones
+Canales
+Email (SendGrid), notificación in-app, Slack (webhook). Configurables por usuario y tipo de alerta.
+Divisas
+Multi-moneda
+Soporte USD y VES con tasa de cambio BCV configurable diariamente. Todos los montos se almacenan en USD base.
+Acceso móvil
+Responsive
+La vista de calendario de pagos y alertas debe ser 100% funcional en móvil.
+8. LINEAMIENTOS DE DISEÑO UX/UI
+8.1 Paleta de Colores
+Token
+Hex
+Uso
+Notas
+Primary
+#00A3FF
+Botones principales, encabezados, KPI destacados
+Marca Deepcompany
+Dark
+#1A1A1A
+Texto principal, fondos de sidebar
+Contraste AA
+Light
+#F8F9FA
+Fondos alternos de tabla, cards
+Success
+#28A745
+Diferencias positivas, pagos ejecutados
+Danger
+#DC3545
+Diferencias negativas, pagos vencidos
+Warning
+#FFC107
+Pagos próximos a vencer (< 3 días)
+Muted
+#6C757D
+Texto secundario, etiquetas
+8.2 Componentes Clave de la Interfaz
+Dashboard principal: KPIs en cards (Presupuesto total, Ejecutado %, Disponible, Variación del mes).
+Tabla horizontal de ingresos: sticky header con los 12 meses; celdas de diferencia con color semáforo.
+Sidebar de egresos: árbol de categorías colapsable con montos y barras de progreso.
+Calendario de pagos: vista mensual/semanal con drag-and-drop para reprogramar pagos.
+Panel de alertas: bandeja unificada con filtros por tipo, área y urgencia.
+Modal de pago: formulario de 5 pasos para programar un nuevo pago con recordatorios.
+9. INTEGRACIONES
+Sistema / Servicio
+Tipo de Integración
+Prioridad
+Slack
+Webhook para alertas críticas de variación y pagos vencidos
+Alta
+Email (SendGrid)
+Notificaciones de recordatorios, resumen mensual, alertas
+Alta
+Google Calendar / iCal
+Exportación del calendario de pagos
+Media
+BCV (Banco Central de Venezuela)
+Consulta de tasa de cambio VES/USD para conversión de montos
+Media
+SENIAT / Plataforma fiscal
+Integración futura para prellenado de declaraciones
+Baja (fase 2)
+Sistema de Nómina (Deepcompany)
+Importación automática de egresos de nómina quincenal
+Media
+Módulo de Proyectos (interno)
+Vincular presupuesto de CapEx a proyectos activos (Parkeate, etc.)
+Media
+N8N (automatización)
+Orquestar flujos de aprobación y envío de recordatorios complejos
+Media
+10. REGLAS DE NEGOCIO
+Una partida de egreso solo puede ser creada por un Director o superior. Los Coordinadores solo pueden registrar pagos contra partidas existentes.
+El presupuesto mensual de una partida no puede excederse sin aprobación explícita del CFO. El sistema bloquea el registro del exceso y genera una solicitud de ampliación.
+La tasa de cambio VES/USD se actualiza una vez al día (08:00 AM VET). Todos los montos históricos conservan la tasa del día de registro.
+Un pago marcado como "Pagado" no puede revertirse sin rol CFO y justificación obligatoria con auditoría.
+Los recordatorios de pago con recurrencia mensual se generan automáticamente el día 1 de cada mes para el ciclo siguiente.
+La alerta de variación (±15% por defecto) es configurable por el CFO entre ±5% y ±30%.
+El Rolling Forecast debe actualizarse antes del día 5 de cada mes. Si no se hace, el día 6 se escala al CEO.
+Todo acceso al módulo de Finanzas requiere 2FA (autenticación de dos factores).
+Los comprobantes de pago adjuntos se almacenan cifrados con AES-256 y son accesibles solo por CFO, CEO y Auditor.
+La reserva de contingencia (mínimo 10% del presupuesto mensual total) se calcula automáticamente y aparece como partida obligatoria.
+11. ROADMAP DE IMPLEMENTACIÓN
+Fase
+Alcance
+Duración estimada
+Entregables
+Fase 1 — MVP
+Presupuesto OpEx/CapEx, tabla de ingresos Proyección/Realidad/Diferencia, egresos por categoría, recordatorios básicos de pago (email + in-app)
+6 semanas
+Módulo funcional con 5 épicas núcleo, dashboard básico
+Fase 2 — Alertas avanzadas
+Rolling Forecast, calendario visual de pagos, alertas de variación configurables, integración Slack y Google Calendar
+4 semanas
+Sistema de alertas completo, calendario interactivo
+Fase 3 — Integraciones
+Integración BCV, nómina, N8N, exportación PDF/XLSX, 2FA obligatorio, multi-entidad
+4 semanas
+Plataforma integrada, reportes ejecutivos, multi-moneda robusto
+Fase 4 — IA y analytics
+Predicciones de flujo de caja con IA, detección de anomalías en egresos, recomendaciones de optimización presupuestal
+5 semanas
+Motor analítico, alertas predictivas, benchmarks por industria
+12. CRITERIOS DE ACEPTACIÓN GLOBALES
+El CFO puede crear un presupuesto anual completo (12 meses, múltiples partidas, OpEx + CapEx) en menos de 20 minutos.
+La tabla horizontal de ingresos refleja la diferencia real vs. proyección en tiempo real al cargar un nuevo dato de realidad.
+Un recordatorio de pago programado genera la notificación email e in-app exactamente en la hora configurada (tolerancia ±5 min).
+El calendario de pagos muestra correctamente los estados (pagado / próximo / vencido) con los colores correspondientes.
+Al superar el 80% de una partida, la alerta llega al Director del área en < 2 minutos.
+Los datos financieros no son accesibles por usuarios sin 2FA activo.
+La exportación a XLSX del reporte mensual conserva fórmulas y formato legible.
+En un escenario de prueba con 100 pagos programados, el sistema envía todos los recordatorios sin omisiones en el ciclo mensual completo.
+13. GLOSARIO
+Término
+Definición
+OpEx
+Operational Expenditures. Gastos operativos recurrentes: nómina, servicios, SaaS, alquileres.
+CapEx
+Capital Expenditures. Inversiones en activos de largo plazo: servidores, software propio, maquinaria.
+FP&A
+Financial Planning & Analysis. Departamento encargado de consolidar, desafiar y monitorear el presupuesto.
+Rolling Forecast
+Pronóstico financiero de horizonte fijo que avanza mensualmente, siempre mirando los próximos 3-12 meses.
+Zero-Based Budgeting
+Metodología donde cada gasto debe justificarse desde cero, sin tomar el año anterior como base.
+Cash Flow
+Flujo de caja: diferencia entre ingresos efectivamente cobrados y egresos efectivamente pagados en un período.
+IGTF
+Impuesto a las Grandes Transacciones Financieras. Aplica en Venezuela sobre transacciones en divisas.
+CEP
+Contribución Especial de Pensiones. Aporte patronal obligatorio del 9% en Venezuela (mayo 2026).
+BCV
+Banco Central de Venezuela. Fuente oficial de la tasa de cambio VES/USD.
+SENIAT
+Servicio Nacional Integrado de Administración Aduanera y Tributaria. Ente fiscal venezolano.
+Variación
+Diferencia entre el valor Real y el valor Proyectado para un período dado.
+Partida presupuestaria
+Línea individual dentro del presupuesto con nombre, monto asignado, categoría y responsable.
+Deepcompany — Documento Confidencial de Uso Interno
+Elaborado por Kevin Alexander Kilson Guevara — CEO KOVER / Coord. Operaciones Deepcompany — Mayo 2026
