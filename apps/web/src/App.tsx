@@ -6,6 +6,8 @@ import { LoginPage } from '@/pages/login-page';
 import { MfaSetupPage } from '@/pages/mfa-setup-page';
 import { WelcomePage } from '@/pages/welcome-page';
 import { FormularioPage } from '@/pages/formulario-page';
+import { ReservarPage } from '@/pages/reservar-page';
+import { KoverPublicPage } from '@/pages/kover-public-page';
 import { DashboardPage } from '@/pages/dashboard-page';
 import { CandidatosPage } from '@/pages/candidatos-page';
 import { VacantesPage } from '@/pages/vacantes-page';
@@ -22,8 +24,11 @@ import { IngresoDetailPage } from '@/pages/ingreso-detail-page';
 import { NominasPage } from '@/pages/nominas-page';
 import { NominaDetailPage } from '@/pages/nomina-detail-page';
 import { GuardiasPage } from '@/pages/guardias-page';
+import { BeneficiosPage } from '@/pages/beneficios-page';
+import { ServiceOrdersPage } from '@/pages/service-orders-page';
 import { ProductosPage } from '@/pages/productos-page';
 import { UsuariosPage } from '@/pages/usuarios-page';
+import { ConfiguracionPage } from '@/pages/configuracion-page';
 
 export default function App() {
   return (
@@ -32,6 +37,8 @@ export default function App() {
       <Route path="/mfa-setup" element={<MfaSetupPage />} />
       <Route path="/welcome" element={<WelcomePage />} />
       <Route path="/formulario/:token" element={<FormularioPage />} />
+      <Route path="/reservar/:vacanteId" element={<ReservarPage />} />
+      <Route path="/kover/:token" element={<KoverPublicPage />} />
       <Route
         element={
           <RequireAuth>
@@ -55,13 +62,23 @@ export default function App() {
         <Route path="/ingresos/:id" element={<IngresoDetailPage />} />
         <Route path="/nominas" element={<NominasPage />} />
         <Route path="/nominas/:id" element={<NominaDetailPage />} />
+        <Route path="/beneficios" element={<BeneficiosPage />} />
         <Route path="/guardias" element={<GuardiasPage />} />
+        <Route path="/ordenes-servicio" element={<ServiceOrdersPage />} />
         <Route path="/inventario" element={<ProductosPage />} />
         <Route
           path="/usuarios"
           element={
             <RequireRole roles={['admin_rrhh']}>
               <UsuariosPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/configuracion"
+          element={
+            <RequireRole roles={['admin_rrhh']}>
+              <ConfiguracionPage />
             </RequireRole>
           }
         />

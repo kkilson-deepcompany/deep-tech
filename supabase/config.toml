@@ -35,3 +35,6 @@ file_size_limit = "50MiB"
 # la función valida la sesión y el rol admin internamente.
 [functions.invite-user]
 verify_jwt = false
+
+[functions.send-service-order]
+verify_jwt = false

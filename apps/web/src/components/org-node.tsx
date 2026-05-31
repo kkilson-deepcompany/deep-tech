@@ -10,18 +10,32 @@ interface OrgNodeProps {
   editMode: boolean;
   /** Empresa dueña del organigrama (se usa al habilitar una vacante). */
   empresa: string;
+  /** Departamento ancestro (se pasa por recursión; vacío en la raíz). */
+  departamento?: string;
   onUpdate: (id: string, patch: Partial<OrgNodeData>) => void;
   onAdd: (parentId: string) => void;
   onDelete: (id: string) => void;
 }
 
 /** Tarjeta + subárbol recursivo de un nodo del organigrama. */
-export function OrgNode({ node, level, editMode, empresa, onUpdate, onAdd, onDelete }: OrgNodeProps) {
+export function OrgNode({
+  node,
+  level,
+  editMode,
+  empresa,
+  departamento,
+  onUpdate,
+  onAdd,
+  onDelete,
+}: OrgNodeProps) {
   const navigate = useNavigate();
   const isVacante = node.nombre === VACANTE_LABEL;
   const isDept = node.isDept || Boolean(node.departamento);
   const title = node.cargo || node.departamento || 'Sin título';
   const subtitle = node.nombre ?? '';
+  // Departamento que aplica a los hijos: si este nodo es un departamento (flag
+  // explícito), su nombre baja; si no, se propaga el ancestro recibido.
+  const childDept = node.isDept ? node.departamento : departamento;
 
   async function habilitarVacante() {
     if (!window.confirm(`¿Habilitar la vacante para el cargo: ${title}?`)) return;
@@ -29,7 +43,7 @@ export function OrgNode({ node, level, editMode, empresa, onUpdate, onAdd, onDel
       titulo: title,
       estado: 'Abierta',
       empresa,
-      departamento: node.departamento ?? null,
+      departamento: departamento ?? null,
     });
     if (error) {
       toast.error(error.message);
@@ -103,7 +117,7 @@ export function OrgNode({ node, level, editMode, empresa, onUpdate, onAdd, onDel
     </div>
   );
 
-  const childProps = { editMode, empresa, onUpdate, onAdd, onDelete };
+  const childProps = { editMode, empresa, departamento: childDept, onUpdate, onAdd, onDelete };
 
   // Nivel 0: hijos en fila horizontal con conectores en T.
   if (level === 0) {

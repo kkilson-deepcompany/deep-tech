@@ -17,6 +17,7 @@ import {
 } from '@/lib/organigrama';
 import { exportOrganigramaPdf } from '@/lib/organigrama-pdf';
 import { OrgNode } from '@/components/org-node';
+import { EmpresaLogo } from '@/components/empresa-logo';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -186,12 +187,13 @@ export function OrganigramaPage() {
                 type="button"
                 onClick={() => setActiveTreeId(t.id)}
                 className={cn(
-                  'rounded-t-md border-b-2 px-4 py-2 text-sm font-medium transition-colors',
+                  'flex items-center gap-2 rounded-t-md border-b-2 px-4 py-2 text-sm font-medium transition-colors',
                   t.id === activeTreeId
                     ? 'border-primary text-primary'
                     : 'text-muted-foreground hover:text-foreground border-transparent',
                 )}
               >
+                <EmpresaLogo nombre={t.name} size="sm" fallback="oculto" />
                 {t.name}
               </button>
             ))}

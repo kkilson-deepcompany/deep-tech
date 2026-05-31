@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileSpreadsheet, Plus } from 'lucide-react';
+import { FileSpreadsheet, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { fetchCandidatos, fetchVacantes } from '@/lib/queries';
+import { CANDIDATO_ESTADOS } from '@/lib/domain';
 import type { Candidato, CandidatoEstado } from '@/lib/domain';
 import { candidatosSpec } from '@/lib/import-specs';
 import { PageHeader } from '@/components/page-header';
@@ -12,10 +13,16 @@ import { CandidatoDialog } from '@/components/candidato-dialog';
 import { BulkImportDialog } from '@/components/bulk-import-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface MoveVars {
   id: string;
+  estado: CandidatoEstado;
+}
+
+interface BulkMoveVars {
+  ids: string[];
   estado: CandidatoEstado;
 }
 
@@ -27,12 +34,22 @@ export function CandidatosPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<Candidato | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const vacanteMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const v of vacantesQuery.data ?? []) map.set(v.id, v.titulo);
     return map;
   }, [vacantesQuery.data]);
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   const move = useMutation({
     mutationFn: async ({ id, estado }: MoveVars) => {
@@ -57,9 +74,53 @@ export function CandidatosPage() {
     },
   });
 
+  const bulkMove = useMutation({
+    mutationFn: async ({ ids, estado }: BulkMoveVars) => {
+      const { error } = await supabase.from('candidatos').update({ estado }).in('id', ids);
+      if (error) throw new Error(error.message);
+    },
+    onMutate: async ({ ids, estado }: BulkMoveVars) => {
+      await queryClient.cancelQueries({ queryKey: ['candidatos'] });
+      const prev = queryClient.getQueryData<Candidato[]>(['candidatos']);
+      const idSet = new Set(ids);
+      queryClient.setQueryData<Candidato[]>(['candidatos'], (old) =>
+        (old ?? []).map((c) => (idSet.has(c.id) ? { ...c, estado } : c)),
+      );
+      return { prev };
+    },
+    onError: (_error, _vars, context) => {
+      if (context?.prev) queryClient.setQueryData(['candidatos'], context.prev);
+      toast.error('No se pudo mover el lote.');
+    },
+    onSuccess: (_data, vars) => {
+      setSelected(new Set());
+      const n = vars.ids.length;
+      toast.success(
+        vars.estado === 'Rechazado'
+          ? `${n} candidato${n === 1 ? '' : 's'} rechazado${n === 1 ? '' : 's'}.`
+          : `${n} candidato${n === 1 ? '' : 's'} movido${n === 1 ? '' : 's'} a "${vars.estado}".`,
+      );
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['candidatos'] });
+    },
+  });
+
   function openNew() {
     setEditing(null);
     setDialogOpen(true);
+  }
+
+  function handleRechazar() {
+    if (selected.size === 0) return;
+    if (window.confirm(`¿Rechazar ${selected.size} candidato(s)?`)) {
+      bulkMove.mutate({ ids: [...selected], estado: 'Rechazado' });
+    }
+  }
+
+  function handleBulkMoveSelect(estado: CandidatoEstado) {
+    if (selected.size === 0) return;
+    bulkMove.mutate({ ids: [...selected], estado });
   }
 
   return (
@@ -67,7 +128,7 @@ export function CandidatosPage() {
       <PageHeader
         eyebrow="Reclutamiento"
         title="Candidatos"
-        description="Pipeline de selección. Arrastra una tarjeta para cambiarla de etapa."
+        description="Pipeline de selección. Arrastra una tarjeta o marca varias para moverlas en lote."
         action={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setImportOpen(true)}>
@@ -99,6 +160,8 @@ export function CandidatosPage() {
             setDialogOpen(true);
           }}
           onMove={(id, estado) => move.mutate({ id, estado })}
+          selected={selected}
+          onToggleSelect={toggleSelect}
         />
       )}
 
@@ -114,6 +177,55 @@ export function CandidatosPage() {
         spec={candidatosSpec}
         queryKey="candidatos"
       />
+
+      {/* Barra flotante de acciones masivas */}
+      {selected.size > 0 && (
+        <div className="fixed inset-x-4 bottom-6 z-30 mx-auto max-w-3xl">
+          <div className="bg-card flex flex-wrap items-center gap-3 rounded-lg border p-3 shadow-lg">
+            <span className="text-sm font-medium">
+              {selected.size} candidato{selected.size === 1 ? '' : 's'} seleccionado
+              {selected.size === 1 ? '' : 's'}
+            </span>
+
+            <Select
+              aria-label="Mover seleccionados a..."
+              className="ml-auto h-9 w-auto min-w-[180px]"
+              disabled={bulkMove.isPending}
+              value=""
+              onChange={(e) => {
+                const estado = e.target.value as CandidatoEstado;
+                if (estado) handleBulkMoveSelect(estado);
+              }}
+            >
+              <option value="">Mover a etapa…</option>
+              {CANDIDATO_ESTADOS.filter((e) => e !== 'Rechazado').map((e) => (
+                <option key={e} value={e}>
+                  {e}
+                </option>
+              ))}
+            </Select>
+
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleRechazar}
+              disabled={bulkMove.isPending}
+            >
+              Rechazar
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelected(new Set())}
+              disabled={bulkMove.isPending}
+              aria-label="Cancelar selección"
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

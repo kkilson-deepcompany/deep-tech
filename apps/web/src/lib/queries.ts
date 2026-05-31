@@ -7,6 +7,7 @@ import type {
   Colaborador,
   Contrato,
   Documento,
+  EmpresaBranding,
   Expense,
   Guardia,
   GuardiasConfig,
@@ -19,6 +20,18 @@ import type {
   Vacante,
 } from '@/lib/domain';
 import type { OrgTree } from '@/lib/organigrama';
+import type {
+  KoverDocument,
+  KoverFormData,
+  KoverPublicView,
+  KoverSolicitud,
+} from '@/lib/kover-form';
+import type {
+  ServiceCliente,
+  ServiceConvenioSaldo,
+  ServiceOrder,
+  ServiceTecnico,
+} from '@/lib/service-order';
 
 /** Fetchers compartidos entre módulos (mismas queryKey en TanStack Query). */
 
@@ -29,6 +42,159 @@ export async function fetchOrgTrees(): Promise<OrgTree[]> {
     .order('created_at', { ascending: true });
   if (error) throw error;
   return (data ?? []) as OrgTree[];
+}
+
+export async function fetchServiceOrders(): Promise<ServiceOrder[]> {
+  const { data, error } = await supabase
+    .from('service_orders')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as ServiceOrder[];
+}
+
+export async function fetchServiceClientes(): Promise<ServiceCliente[]> {
+  const { data, error } = await supabase
+    .from('service_clientes')
+    .select('*')
+    .eq('activo', true)
+    .order('nombre');
+  if (error) throw error;
+  return (data ?? []) as ServiceCliente[];
+}
+
+export async function fetchServiceTecnicos(): Promise<ServiceTecnico[]> {
+  const { data, error } = await supabase
+    .from('service_tecnicos')
+    .select('*')
+    .eq('activo', true)
+    .order('nombre');
+  if (error) throw error;
+  return (data ?? []) as ServiceTecnico[];
+}
+
+export async function fetchServiceConvenioSaldos(): Promise<ServiceConvenioSaldo[]> {
+  const { data, error } = await supabase
+    .from('service_convenio_saldos')
+    .select('*')
+    .order('nombre');
+  if (error) throw error;
+  return (data ?? []) as ServiceConvenioSaldo[];
+}
+
+export async function fetchKoverSolicitudes(): Promise<KoverSolicitud[]> {
+  const { data, error } = await supabase
+    .from('kover_solicitudes')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as KoverSolicitud[];
+}
+
+export async function fetchKoverDocuments(applicationId: string): Promise<KoverDocument[]> {
+  const { data, error } = await supabase
+    .from('kover_documents')
+    .select('*')
+    .eq('application_id', applicationId)
+    .order('uploaded_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as KoverDocument[];
+}
+
+/** RPC: devuelve la solicitud asociada al token (anon-friendly).
+ *  Devuelve `null` si el token no existe o fue revocado. */
+export async function fetchKoverByToken(token: string): Promise<KoverPublicView | null> {
+  const { data, error } = await supabase.rpc('kover_get_by_token', { p_token: token });
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as KoverPublicView[];
+  return rows[0] ?? null;
+}
+
+/** RPC: documentos atados al token (anon-friendly). */
+export async function fetchKoverDocumentsByToken(token: string): Promise<KoverDocument[]> {
+  const { data, error } = await supabase.rpc('kover_documents_by_token', { p_token: token });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as KoverDocument[];
+}
+
+/** RPC: guarda el form_data por token. */
+export async function saveKoverByToken(
+  token: string,
+  formData: KoverFormData,
+  intent: 'draft' | 'final',
+): Promise<string> {
+  const { data, error } = await supabase.rpc('kover_save_by_token', {
+    p_token: token,
+    p_form_data: formData,
+    p_intent: intent,
+  });
+  if (error) throw new Error(error.message);
+  return data as string;
+}
+
+/** RPC: registra un documento subido por el colaborador. */
+export async function addKoverDocumentByToken(args: {
+  token: string;
+  docType: string;
+  relatedQuestionCode: string | null;
+  storagePath: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256Hash: string;
+}): Promise<string> {
+  const { data, error } = await supabase.rpc('kover_add_document_by_token', {
+    p_token: args.token,
+    p_doc_type: args.docType,
+    p_related_question_code: args.relatedQuestionCode,
+    p_storage_path: args.storagePath,
+    p_file_name: args.fileName,
+    p_mime_type: args.mimeType,
+    p_size_bytes: args.sizeBytes,
+    p_sha256_hash: args.sha256Hash,
+  });
+  if (error) throw new Error(error.message);
+  return data as string;
+}
+
+/** RPC: elimina un documento por token y devuelve el storage_path para
+ *  que el cliente borre el blob físico. */
+export async function deleteKoverDocumentByToken(
+  token: string,
+  documentId: string,
+): Promise<string> {
+  const { data, error } = await supabase.rpc('kover_delete_document_by_token', {
+    p_token: token,
+    p_document_id: documentId,
+  });
+  if (error) throw new Error(error.message);
+  return data as string;
+}
+
+/** RPC admin: genera (o regenera) el token público de una solicitud. */
+export async function generateKoverPublicToken(applicationId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('kover_generate_public_token', {
+    p_application_id: applicationId,
+  });
+  if (error) throw new Error(error.message);
+  return data as string;
+}
+
+/** RPC admin: revoca el token público (el link queda inerte). */
+export async function revokeKoverPublicToken(applicationId: string): Promise<void> {
+  const { error } = await supabase.rpc('kover_revoke_public_token', {
+    p_application_id: applicationId,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function fetchEmpresasBranding(): Promise<EmpresaBranding[]> {
+  const { data, error } = await supabase
+    .from('empresa_branding')
+    .select('*')
+    .order('nombre');
+  if (error) throw error;
+  return (data ?? []) as EmpresaBranding[];
 }
 
 export async function fetchVacantes(): Promise<Vacante[]> {

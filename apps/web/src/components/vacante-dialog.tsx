@@ -1,11 +1,18 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { MODALIDADES, TIPOS_CONTRATO, VACANTE_ESTADOS, nullifyEmpty } from '@/lib/domain';
-import type { Vacante } from '@/lib/domain';
+import {
+  DIAS_SEMANA,
+  DIAS_SEMANA_LABEL,
+  MODALIDADES,
+  TIPOS_CONTRATO,
+  VACANTE_ESTADOS,
+  nullifyEmpty,
+} from '@/lib/domain';
+import type { DiaSemana, Vacante } from '@/lib/domain';
 import {
   Dialog,
   DialogContent,
@@ -17,6 +24,7 @@ import {
 import { FormField } from '@/components/form-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
@@ -37,6 +45,11 @@ type VacanteFormValues = {
   requisitos: string;
   beneficios: string;
   notas: string;
+  // Reservas públicas
+  fecha_inicio_entrevistas: string;
+  fecha_fin_entrevistas: string;
+  hora_inicio: string;
+  hora_fin: string;
 };
 
 function toFormValues(v: Vacante | null): VacanteFormValues {
@@ -56,6 +69,10 @@ function toFormValues(v: Vacante | null): VacanteFormValues {
     requisitos: v?.requisitos ?? '',
     beneficios: v?.beneficios ?? '',
     notas: v?.notas ?? '',
+    fecha_inicio_entrevistas: v?.fecha_inicio_entrevistas ?? '',
+    fecha_fin_entrevistas: v?.fecha_fin_entrevistas ?? '',
+    hora_inicio: v?.hora_inicio?.slice(0, 5) ?? '',
+    hora_fin: v?.hora_fin?.slice(0, 5) ?? '',
   };
 }
 
@@ -74,14 +91,25 @@ export function VacanteDialog({ open, onOpenChange, vacante }: VacanteDialogProp
     reset,
     formState: { errors },
   } = useForm<VacanteFormValues>({ defaultValues: toFormValues(vacante) });
+  const [dias, setDias] = useState<DiaSemana[]>(vacante?.dias_habilitados ?? []);
 
   useEffect(() => {
-    if (open) reset(toFormValues(vacante));
+    if (open) {
+      reset(toFormValues(vacante));
+      setDias(vacante?.dias_habilitados ?? []);
+    }
   }, [open, vacante, reset]);
+
+  function toggleDia(dia: DiaSemana, checked: boolean) {
+    setDias((prev) => (checked ? [...prev, dia] : prev.filter((d) => d !== dia)));
+  }
 
   const save = useMutation({
     mutationFn: async (values: VacanteFormValues) => {
-      const payload = nullifyEmpty(values);
+      const payload = {
+        ...nullifyEmpty(values),
+        dias_habilitados: dias.length > 0 ? dias : null,
+      };
       const { error } =
         isEdit && vacante
           ? await supabase.from('vacantes').update(payload).eq('id', vacante.id)
@@ -114,7 +142,7 @@ export function VacanteDialog({ open, onOpenChange, vacante }: VacanteDialogProp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Editar vacante' : 'Nueva vacante'}</DialogTitle>
           <DialogDescription>
@@ -221,6 +249,58 @@ export function VacanteDialog({ open, onOpenChange, vacante }: VacanteDialogProp
           <FormField label="Notas internas" htmlFor="notas" className="sm:col-span-2">
             <Textarea id="notas" {...register('notas')} />
           </FormField>
+
+          {/* === Configuración de reservas públicas de entrevistas === */}
+          <div className="border-t pt-4 sm:col-span-2">
+            <h3 className="text-primary font-heading mb-1 text-sm font-semibold">
+              Reservas de entrevistas
+            </h3>
+            <p className="text-muted-foreground mb-3 text-xs">
+              Llena estos campos y comparte el link público para que los candidatos elijan su
+              horario. Bloques de 20 min con 5 min de separación.
+            </p>
+          </div>
+
+          <FormField label="Inicio entrevistas" htmlFor="fecha_inicio_entrevistas">
+            <Input
+              id="fecha_inicio_entrevistas"
+              type="date"
+              {...register('fecha_inicio_entrevistas')}
+            />
+          </FormField>
+
+          <FormField label="Fin entrevistas" htmlFor="fecha_fin_entrevistas">
+            <Input
+              id="fecha_fin_entrevistas"
+              type="date"
+              {...register('fecha_fin_entrevistas')}
+            />
+          </FormField>
+
+          <FormField label="Hora inicio (bloques)" htmlFor="hora_inicio">
+            <Input id="hora_inicio" type="time" {...register('hora_inicio')} />
+          </FormField>
+
+          <FormField label="Hora fin (bloques)" htmlFor="hora_fin">
+            <Input id="hora_fin" type="time" {...register('hora_fin')} />
+          </FormField>
+
+          <div className="space-y-2 sm:col-span-2">
+            <Label>Días habilitados</Label>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {DIAS_SEMANA.map((dia) => (
+                <label key={dia} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="accent-primary size-4"
+                    checked={dias.includes(dia)}
+                    onChange={(e) => toggleDia(dia, e.target.checked)}
+                  />
+                  {DIAS_SEMANA_LABEL[dia]}
+                </label>
+              ))}
+            </div>
+          </div>
 
           <DialogFooter className="sm:col-span-2">
             {isEdit && (

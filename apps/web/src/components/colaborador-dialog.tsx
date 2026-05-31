@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Trash2 } from 'lucide-react';
+import { FileSignature, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import {
@@ -13,6 +13,7 @@ import {
   nullifyEmpty,
 } from '@/lib/domain';
 import type { Colaborador } from '@/lib/domain';
+import { generarConstanciaTrabajoPdf } from '@/lib/constancia-trabajo-pdf';
 import {
   Dialog,
   DialogContent,
@@ -312,6 +313,21 @@ export function ColaboradorDialog({ open, onOpenChange, colaborador }: Colaborad
           </FormField>
 
           <DialogFooter className="sm:col-span-2">
+            {isEdit && colaborador && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={() => {
+                  generarConstanciaTrabajoPdf(colaborador).catch(() =>
+                    toast.error('No se pudo generar la constancia.'),
+                  );
+                }}
+              >
+                <FileSignature />
+                Constancia de trabajo
+              </Button>
+            )}
             {isEdit && (
               <Button
                 type="button"

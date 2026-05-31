@@ -50,6 +50,35 @@ export const VACANTE_ESTADO_VARIANT: Record<
   Cerrada: 'muted',
 };
 
+export const DIAS_SEMANA = [
+  'lunes',
+  'martes',
+  'miercoles',
+  'jueves',
+  'viernes',
+  'sabado',
+  'domingo',
+] as const;
+export type DiaSemana = (typeof DIAS_SEMANA)[number];
+
+export const DIAS_SEMANA_LABEL: Record<DiaSemana, string> = {
+  lunes: 'Lunes',
+  martes: 'Martes',
+  miercoles: 'Miércoles',
+  jueves: 'Jueves',
+  viernes: 'Viernes',
+  sabado: 'Sábado',
+  domingo: 'Domingo',
+};
+
+export interface EmpresaBranding {
+  nombre: string;
+  logo_url: string | null;
+  color_primario: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Vacante {
   id: string;
   titulo: string;
@@ -68,6 +97,12 @@ export interface Vacante {
   tipo_contrato: TipoContrato;
   requisitos: string | null;
   notas: string | null;
+  // Configuración de reservas públicas de entrevistas.
+  fecha_inicio_entrevistas: string | null;
+  fecha_fin_entrevistas: string | null;
+  hora_inicio: string | null;
+  hora_fin: string | null;
+  dias_habilitados: DiaSemana[] | null;
   created_at: string;
 }
 
@@ -608,6 +643,25 @@ export function formatMoney(value: string | null | undefined): string {
   const n = Number(value);
   if (Number.isNaN(n)) return '—';
   return n.toLocaleString('es-VE', { maximumFractionDigits: 2 });
+}
+
+/**
+ * Normaliza el salario por período a salario mensual usando la frecuencia.
+ *   Semanal × 4.333  ·  Decadal × 3  ·  Quincenal × 2  ·  Mensual × 1
+ */
+export function salarioMensual(
+  salario: string | number | null | undefined,
+  frecuencia: FrecuenciaPago,
+): number {
+  const n = Number(salario ?? 0);
+  if (!Number.isFinite(n)) return 0;
+  const mult: Record<FrecuenciaPago, number> = {
+    Semanal: 4.333,
+    Decadal: 3,
+    Quincenal: 2,
+    Mensual: 1,
+  };
+  return n * mult[frecuencia];
 }
 
 /** Convierte cadenas vacías a null para no romper columnas date/numeric. */

@@ -6,12 +6,15 @@ import {
   CalendarClock,
   FileText,
   FolderOpen,
+  HeartPulse,
   LayoutDashboard,
   LogOut,
   Moon,
   Network,
   Package,
+  ClipboardList,
   Receipt,
+  Settings,
   ShieldCheck,
   Sun,
   TrendingUp,
@@ -56,6 +59,7 @@ const NAV_GROUPS: NavGroup[] = [
       { to: '/contratos', label: 'Contratos', icon: FileText },
       { to: '/documentos', label: 'Documentos', icon: FolderOpen },
       { to: '/nominas', label: 'Nómina', icon: Banknote },
+      { to: '/beneficios', label: 'Beneficios', icon: HeartPulse },
     ],
   },
   {
@@ -71,12 +75,16 @@ const NAV_GROUPS: NavGroup[] = [
     section: 'Operaciones',
     items: [
       { to: '/guardias', label: 'Guardias', icon: CalendarClock },
+      { to: '/ordenes-servicio', label: 'Órdenes de Servicio', icon: ClipboardList },
       { to: '/inventario', label: 'Inventario', icon: Package },
     ],
   },
   {
     section: 'Administración',
-    items: [{ to: '/usuarios', label: 'Usuarios', icon: ShieldCheck, roles: ['admin_rrhh'] }],
+    items: [
+      { to: '/usuarios', label: 'Usuarios', icon: ShieldCheck, roles: ['admin_rrhh'] },
+      { to: '/configuracion', label: 'Configuración', icon: Settings, roles: ['admin_rrhh'] },
+    ],
   },
 ];
 

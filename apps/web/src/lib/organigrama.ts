@@ -33,7 +33,7 @@ const BASE_TREE: OrgNodeData = {
   children: [
     {
       id: '',
-      departamento: 'Departamento de Administración',
+      departamento: 'Departamento de Administración y Finanzas',
       isDept: true,
       children: [
         {
@@ -160,7 +160,15 @@ const BASE_TREE: OrgNodeData = {
           cargo: 'Reclutamiento y Selección',
           nombre: 'Kevin Kilson, Elayne Escalante y Roger Hernandez',
         },
+      ],
+    },
+    {
+      id: '',
+      departamento: 'Departamento de Operaciones',
+      isDept: true,
+      children: [
         { id: '', cargo: 'Operaciones', nombre: 'Kevin Kilson' },
+        { id: '', cargo: 'Asistente de Operaciones', nombre: VACANTE_LABEL },
       ],
     },
   ],
