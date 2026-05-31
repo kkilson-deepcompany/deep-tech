@@ -8,6 +8,7 @@ import {
   FolderOpen,
   HeartPulse,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   Moon,
   Network,
@@ -76,6 +77,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: '/guardias', label: 'Guardias', icon: CalendarClock },
       { to: '/ordenes-servicio', label: 'Órdenes de Servicio', icon: ClipboardList },
+      { to: '/soporte', label: 'Soporte', icon: LifeBuoy },
       { to: '/inventario', label: 'Inventario', icon: Package },
     ],
   },

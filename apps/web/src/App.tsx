@@ -26,6 +26,7 @@ import { NominaDetailPage } from '@/pages/nomina-detail-page';
 import { GuardiasPage } from '@/pages/guardias-page';
 import { BeneficiosPage } from '@/pages/beneficios-page';
 import { ServiceOrdersPage } from '@/pages/service-orders-page';
+import { SoportePage } from '@/pages/soporte-page';
 import { ProductosPage } from '@/pages/productos-page';
 import { UsuariosPage } from '@/pages/usuarios-page';
 import { ConfiguracionPage } from '@/pages/configuracion-page';
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/beneficios" element={<BeneficiosPage />} />
         <Route path="/guardias" element={<GuardiasPage />} />
         <Route path="/ordenes-servicio" element={<ServiceOrdersPage />} />
+        <Route path="/soporte" element={<SoportePage />} />
         <Route path="/inventario" element={<ProductosPage />} />
         <Route
           path="/usuarios"

@@ -32,6 +32,11 @@ import type {
   ServiceOrder,
   ServiceTecnico,
 } from '@/lib/service-order';
+import type {
+  SupportTicket,
+  SupportTicketCreate,
+  SupportTicketUpdate,
+} from '@/lib/support-ticket';
 
 /** Fetchers compartidos entre módulos (mismas queryKey en TanStack Query). */
 
@@ -353,4 +358,80 @@ export async function fetchGuardiasConfig(): Promise<GuardiasConfig | null> {
     .maybeSingle();
   if (error) throw error;
   return (data as GuardiasConfig | null) ?? null;
+}
+
+/** Tickets de soporte: CRUD manual contra la tabla `support_tickets`. */
+export async function fetchSupportTickets(): Promise<SupportTicket[]> {
+  const { data, error } = await supabase
+    .from('support_tickets')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as SupportTicket[];
+}
+
+function generateTicketId(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  const h = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  return `TK-${y}${m}${d}${h}${min}`;
+}
+
+export async function createSupportTicket(payload: SupportTicketCreate): Promise<SupportTicket> {
+  const row = {
+    id: payload.id ?? generateTicketId(),
+    cliente_nombre: payload.cliente_nombre,
+    cliente_empresa: payload.cliente_empresa,
+    cliente_contacto: payload.cliente_contacto,
+    canal_entrada: payload.canal_entrada,
+    descripcion: payload.descripcion,
+    urgencia: payload.urgencia ?? null,
+    ruta: payload.ruta ?? null,
+    tipo_solicitud: payload.tipo_solicitud ?? null,
+    status: payload.status ?? 'nuevo',
+  };
+  const { data, error } = await supabase
+    .from('support_tickets')
+    .insert(row)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as SupportTicket;
+}
+
+export async function updateSupportTicket(
+  ticketId: string,
+  payload: SupportTicketUpdate,
+): Promise<SupportTicket> {
+  const { data, error } = await supabase
+    .from('support_tickets')
+    .update(payload)
+    .eq('id', ticketId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as SupportTicket;
+}
+
+export async function deleteSupportTicket(ticketId: string): Promise<void> {
+  const { error } = await supabase.from('support_tickets').delete().eq('id', ticketId);
+  if (error) throw error;
+}
+
+export async function appendSupportTicketNota(
+  ticketId: string,
+  nota: string,
+): Promise<SupportTicket> {
+  const { data, error } = await supabase
+    .from('support_tickets')
+    .select('notas_internas')
+    .eq('id', ticketId)
+    .single();
+  if (error) throw error;
+  const stamp = new Date().toLocaleString('es-VE', { hour: '2-digit', minute: '2-digit' });
+  const nuevas = [...((data?.notas_internas as string[] | null) ?? []), `[${stamp}] ${nota}`];
+  return updateSupportTicket(ticketId, { notas_internas: nuevas });
 }
