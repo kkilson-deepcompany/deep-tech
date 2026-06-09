@@ -44,9 +44,17 @@ Auditoría completa (código, seguridad, arquitectura, finanzas) hecha el 2026-0
 ## Flip a createClient<Database>: MEDIDO = 55 errores
 - Probado y revertido. Los Row generados no calzan con las interfaces de dominio (form_data Json vs interfaces tipadas). Hacerlo bien = refactor deliberado que ALINEE domain.ts/service-order types con los generados, NO 55 casts `as unknown as`. Tarea propia futura.
 
-## Pendiente importante (no hecho aún)
-- **REVOCAR el PAT `sbp_...`** usado en esta sesión (Account → Tokens) y **rotar `service_role`** (quedó en el chat) + contraseña Postgres.
-- Redeploy edge functions + `supabase secrets set ALLOWED_ORIGIN=`.
-- Refactor deliberado para flipar el cliente a `<Database>` (ver arriba).
+## Merge a main + deploy resueltos (2026-06-09)
+- `auditoria-fixes` MERGEADA a `main` (commit 2b9ed21). NO hay remoto git → todo local; falta `git remote add` + push cuando suban a GitHub.
+- **Signup público CERRADO** (`disable_signup: true` vía Management API) — estaba abierto, hueco real.
+- **Edge functions desplegadas** (estaban SIN desplegar): invite-user y send-service-order, ACTIVE, verify_jwt=false. Deploy vía `bunx supabase functions deploy --project-ref ... ` con SUPABASE_ACCESS_TOKEN (sin Docker).
+- **CORS por allowlist** (commit ff7476c): `ALLOWED_ORIGINS` (lista, echo de origen). Secret seteado a `http://localhost:5173,http://localhost:3000`. Al subir a Vercel/AWS: ampliar el secret con esos dominios (no requiere redeploy de código, pero sí re-set del secret y redeploy para tomar el env... en realidad cambiar secret requiere redeploy de la función para refrescar env).
+
+## Pendiente del usuario
+- **REVOCAR el PAT `sbp_533e...`** (Account → Tokens) y **rotar `service_role`** (quedó en el chat) + contraseña Postgres.
+- **`RESEND_API_KEY`** NO está seteado → send-service-order da 500 hasta que pongas la key de resend.com.
+- `site_url` de auth = `http://localhost:3000` → actualizar a la URL real al desplegar (afecta el redirect del invite a /welcome). Ojo: el front corre en :5173, el site_url dice :3000.
+- Al desplegar: ampliar `ALLOWED_ORIGINS` con el dominio Vercel/AWS y redeploy de las 2 functions.
+- Refactor deliberado para flipar el cliente a `<Database>` (55 errores medidos; alinear domain types).
 
 Relacionado: [[deep-tech-hr-migration]], [[deep-tech-env-constraints]].
