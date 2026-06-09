@@ -17,9 +17,15 @@ Auditoría completa (código, seguridad, arquitectura, finanzas) hecha el 2026-0
 - Finanzas: `round2()` en domain.ts, céntimos en numero-a-letras, tasa BCV obligatoria, `products.costo_total` por trigger en BD.
 - Limpieza: checkbox duplicado en producto-dialog, RPC atómico `support_ticket_add_nota`, formatMoney(number), eliminadas deps muertas (zod, @hookform/resolvers), añadido CI.
 
+## Drift de schema RESUELTO (commit 23ac94c)
+- Los 12 `scripts/*.sql` se movieron a `supabase/migrations/0009-0020` (orden de dependencia). BD nueva ya reproducible desde migraciones.
+- 0008 refactorizado: RLS por rol vía función `apply_module_rls()` que dropea TODAS las policies previas (no solo tmp_authenticated_all) antes de crear las de rol. 0021 la reaplica tras crear las tablas de scripts.
+- Schemas Drizzle añadidos: branding, kover, service-orders, support-tickets.
+- **PENDIENTE: aplicar 0008-0021 a la BD** en orden (Management API). `empresa_branding` queda fuera del modelo de rol (conserva lectura anon).
+- Caveat: drizzle `_journal.json`/snapshots solo cubren 0000-0007. Si se corre `drizzle-kit generate` intentará recrear las tablas nuevas. Workflow real = aplicar SQL por Management API, no `drizzle migrate`.
+
 ## Pendiente importante (no hecho aún)
 - **Rotar `service_role` key + contraseña Postgres** (estaban en claro en `.env.local`/`scripts/apply.ts`).
-- **Drift de schema (P0):** 10 tablas viven solo en `scripts/*.sql` (org_trees, kover, service-*, support, branding) y NO en migraciones ni en schema Drizzle. La BD real no es reproducible. Consolidar todo en migraciones + schema Drizzle; eliminar `scripts/apply.ts`.
 - Regenerar `packages/shared/src/database.types.ts` (`supabase gen types`) y tipar el cliente Supabase con `<Database>` (hoy todo es `any` casteado).
 - `xlsx@0.18.5` tiene CVEs sin fix en npm → migrar al CDN de SheetJS o exceljs.
 - Tests: solo App.test.tsx. Priorizar nómina y bulk-import.
