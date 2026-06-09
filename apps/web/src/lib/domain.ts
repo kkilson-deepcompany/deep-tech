@@ -334,6 +334,80 @@ export interface Expense {
   created_at: string;
 }
 
+// ── Beneficios ───────────────────────────────────────────────────────────────
+export interface SeguroPlan {
+  id: string;
+  clave: string;
+  aseguradora: string;
+  nombre: string;
+  tipo: 'Colectiva' | 'Individual';
+  cobertura: string | null;
+  activo: boolean;
+}
+
+export const SEGURO_ESTADOS = ['Asegurado', 'Cotizado', 'Pendiente', 'Sin seguro'] as const;
+export type SeguroEstado = (typeof SEGURO_ESTADOS)[number];
+
+export interface ColaboradorSeguro {
+  id: string;
+  colaborador_id: string;
+  estado: SeguroEstado;
+  plan_id: string | null;
+  prima_usd: string | null;
+  fecha_nacimiento: string | null;
+  genero: string | null;
+  cotizacion: Record<string, number>;
+  vigencia_inicio: string | null;
+  vigencia_fin: string | null;
+  nota: string | null;
+  created_at: string;
+  /** Join con colaboradores. */
+  colaborador?: { nombre: string; cargo: string; empresa: string } | null;
+}
+
+export const FORMACION_ESTADOS = ['Planificada', 'En curso', 'Completada', 'Cancelada'] as const;
+export type FormacionEstado = (typeof FORMACION_ESTADOS)[number];
+
+export interface Formacion {
+  id: string;
+  colaborador_id: string | null;
+  nombre: string;
+  proveedor: string | null;
+  costo_usd: string;
+  fecha: string | null;
+  estado: FormacionEstado;
+  gasto_id: string | null;
+  nota: string | null;
+  created_at: string;
+  colaborador?: { nombre: string } | null;
+}
+
+export const BECA_ESTADOS = ['Activa', 'Finalizada', 'Cancelada'] as const;
+export type BecaEstado = (typeof BECA_ESTADOS)[number];
+
+export interface Beca {
+  id: string;
+  colaborador_id: string | null;
+  institucion: string;
+  programa: string | null;
+  monto_usd: string;
+  pct_cubierto: string;
+  periodo: string | null;
+  estado: BecaEstado;
+  gasto_id: string | null;
+  nota: string | null;
+  created_at: string;
+  colaborador?: { nombre: string } | null;
+}
+
+export interface FideicomisoSaldo {
+  colaborador_id: string;
+  nombre: string;
+  saldo_usd: number;
+  saldo_bs: number;
+  movimientos: number;
+}
+
 export interface PaymentReminder {
   id: string;
   title: string;

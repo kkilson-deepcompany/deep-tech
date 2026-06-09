@@ -1,14 +1,18 @@
 import { supabase } from '@/lib/supabase';
 import type {
+  Beca,
   Budget,
   BudgetLine,
   Candidato,
   Carpeta,
   Colaborador,
+  ColaboradorSeguro,
   Contrato,
   Documento,
   EmpresaBranding,
   Expense,
+  FideicomisoSaldo,
+  Formacion,
   Guardia,
   GuardiasConfig,
   IncomeMonth,
@@ -17,6 +21,7 @@ import type {
   NominaRegistro,
   PaymentReminder,
   Product,
+  SeguroPlan,
   Vacante,
 } from '@/lib/domain';
 import type { OrgTree } from '@/lib/organigrama';
@@ -434,4 +439,135 @@ export async function appendSupportTicketNota(
   });
   if (error) throw error;
   return data as SupportTicket;
+}
+
+// ── Beneficios ───────────────────────────────────────────────────────────────
+
+export async function fetchSeguroPlanes(): Promise<SeguroPlan[]> {
+  const { data, error } = await supabase
+    .from('seguro_planes')
+    .select('*')
+    .order('tipo')
+    .order('nombre');
+  if (error) throw error;
+  return (data ?? []) as SeguroPlan[];
+}
+
+export async function fetchColaboradorSeguros(): Promise<ColaboradorSeguro[]> {
+  const { data, error } = await supabase
+    .from('colaborador_seguros')
+    .select('*, colaborador:colaboradores(nombre, cargo, empresa)')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as ColaboradorSeguro[];
+}
+
+export async function updateColaboradorSeguro(
+  id: string,
+  patch: Partial<ColaboradorSeguro>,
+): Promise<void> {
+  const { colaborador: _omit, ...rest } = patch;
+  void _omit;
+  const { error } = await supabase.from('colaborador_seguros').update(rest).eq('id', id);
+  if (error) throw error;
+}
+
+export async function fetchFideicomisoSaldos(): Promise<FideicomisoSaldo[]> {
+  const { data, error } = await supabase
+    .from('fideicomiso_movimientos')
+    .select('colaborador_id, monto_usd, monto_bs, colaborador:colaboradores(nombre)');
+  if (error) throw error;
+  const byColab = new Map<string, FideicomisoSaldo>();
+  for (const row of (data ?? []) as unknown as Array<{
+    colaborador_id: string;
+    monto_usd: string;
+    monto_bs: string;
+    colaborador: { nombre: string } | null;
+  }>) {
+    const cur = byColab.get(row.colaborador_id) ?? {
+      colaborador_id: row.colaborador_id,
+      nombre: row.colaborador?.nombre ?? '—',
+      saldo_usd: 0,
+      saldo_bs: 0,
+      movimientos: 0,
+    };
+    cur.saldo_usd += Number(row.monto_usd) || 0;
+    cur.saldo_bs += Number(row.monto_bs) || 0;
+    cur.movimientos += 1;
+    byColab.set(row.colaborador_id, cur);
+  }
+  return [...byColab.values()].sort((a, b) => b.saldo_usd - a.saldo_usd);
+}
+
+export async function fetchFormaciones(): Promise<Formacion[]> {
+  const { data, error } = await supabase
+    .from('formaciones')
+    .select('*, colaborador:colaboradores(nombre)')
+    .order('fecha', { ascending: false, nullsFirst: false });
+  if (error) throw error;
+  return (data ?? []) as Formacion[];
+}
+
+export async function saveFormacion(
+  values: Record<string, unknown>,
+  id: string | null,
+): Promise<void> {
+  const { error } = id
+    ? await supabase.from('formaciones').update(values).eq('id', id)
+    : await supabase.from('formaciones').insert(values);
+  if (error) throw error;
+}
+
+export async function deleteFormacion(id: string): Promise<void> {
+  const { error } = await supabase.from('formaciones').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function fetchBecas(): Promise<Beca[]> {
+  const { data, error } = await supabase
+    .from('becas')
+    .select('*, colaborador:colaboradores(nombre)')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as Beca[];
+}
+
+export async function saveBeca(values: Record<string, unknown>, id: string | null): Promise<void> {
+  const { error } = id
+    ? await supabase.from('becas').update(values).eq('id', id)
+    : await supabase.from('becas').insert(values);
+  if (error) throw error;
+}
+
+export async function deleteBeca(id: string): Promise<void> {
+  const { error } = await supabase.from('becas').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/**
+ * Registra un beneficio como gasto en Finanzas y devuelve el id del gasto.
+ * Decisión de negocio: formaciones y becas se contabilizan en el módulo de Gastos.
+ */
+export async function registrarBeneficioComoGasto(args: {
+  amount: number;
+  category: string;
+  businessLine: string;
+  description: string;
+  date: string;
+}): Promise<string> {
+  const { data, error } = await supabase
+    .from('expenses')
+    .insert({
+      amount: args.amount,
+      currency: 'USD',
+      category: args.category,
+      business_line: args.businessLine,
+      description: args.description,
+      date: args.date,
+      status: 'Programado',
+    })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return (data as { id: string }).id;
 }

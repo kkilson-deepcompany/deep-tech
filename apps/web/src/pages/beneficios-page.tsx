@@ -12,6 +12,11 @@ import {
 import { EMPTY_KOVER_FORM, type KoverFormData, type KoverSolicitud } from '@/lib/kover-form';
 import { KoverForm } from '@/components/kover-form';
 import { PageHeader } from '@/components/page-header';
+import {
+  BENEFICIOS_TABS,
+  BeneficiosSections,
+  type BeneficiosTab,
+} from '@/components/beneficios-sections';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +54,7 @@ export function BeneficiosPage() {
     queryFn: fetchColaboradores,
   });
 
+  const [modulo, setModulo] = useState<BeneficiosTab | 'kover'>('seguros');
   const [tab, setTab] = useState<Tab>('borradores');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<KoverSolicitud | null>(null);
@@ -216,17 +222,51 @@ export function BeneficiosPage() {
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
         eyebrow="Equipo"
-        title="Beneficios y Seguros"
-        description="Cuestionario de salud de Kover · HCM, Emergencias Médicas, Accidentes Personales y Vida."
+        title="Beneficios"
+        description="Seguros, fideicomiso, formaciones y becas corporativas. Kover gestiona el cuestionario de salud."
         action={
-          <Button onClick={openNew}>
-            <Plus />
-            Nueva solicitud
-          </Button>
+          modulo === 'kover' ? (
+            <Button onClick={openNew}>
+              <Plus />
+              Nueva solicitud
+            </Button>
+          ) : undefined
         }
       />
 
-      {/* Tabs */}
+      {/* Selector de módulo */}
+      <div className="bg-muted/50 flex w-fit flex-wrap gap-1 rounded-md border p-1">
+        {BENEFICIOS_TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setModulo(id)}
+            className={cn(
+              'flex items-center gap-2 rounded px-3 py-1.5 text-sm font-medium transition-colors',
+              modulo === id ? 'bg-card shadow-sm' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <Icon className="size-4" />
+            {label}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => setModulo('kover')}
+          className={cn(
+            'flex items-center gap-2 rounded px-3 py-1.5 text-sm font-medium transition-colors',
+            modulo === 'kover' ? 'bg-card shadow-sm' : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          Solicitudes Kover
+        </button>
+      </div>
+
+      {modulo !== 'kover' && <BeneficiosSections tab={modulo} />}
+
+      {modulo === 'kover' && (
+      <>
+      {/* Sub-tabs Kover */}
       <div className="bg-muted/50 flex w-fit gap-1 rounded-md border p-1">
         {TABS.map((t) => (
           <button
@@ -369,6 +409,8 @@ export function BeneficiosPage() {
           )}
         </CardContent>
       </Card>
+      </>
+      )}
 
       {/* === Dialog "Compartir link público" === */}
       <Dialog open={!!sharing} onOpenChange={(o) => !o && setSharing(null)}>
