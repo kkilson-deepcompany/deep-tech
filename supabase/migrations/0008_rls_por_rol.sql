@@ -45,11 +45,20 @@ $$;
 --> statement-breakpoint
 
 -- ── Aplicación de políticas por módulo ──────────────────────────────────────
--- Para cada tabla: SELECT (lectura), INSERT/UPDATE/DELETE (escritura).
--- read_pred / write_pred son expresiones SQL booleanas.
-DO $$
+-- Función reutilizable: para cada tabla del modelo (si existe) habilita RLS,
+-- DROPEA TODAS sus policies existentes (incluidas las permisivas heredadas de
+-- los scripts, p.ej. service_orders_read/kover_documents_read, que de otro modo
+-- se combinarían con OR y anularían el RLS por rol) y crea las 4 de rol.
+-- Se llama aquí y de nuevo en la última migración (tras crear las tablas de los
+-- módulos que vivían en scripts/). Idempotente.
+CREATE OR REPLACE FUNCTION public.apply_module_rls()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $fn$
 DECLARE
-  rec record;
+  pol record;
   -- (tabla, predicado_lectura, predicado_escritura)
   cfg text[][] := ARRAY[
     -- Reclutamiento: lectura amplia, escritura reclutamiento.
@@ -106,11 +115,14 @@ BEGIN
     END IF;
 
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', tname);
-    EXECUTE format('DROP POLICY IF EXISTS tmp_authenticated_all ON public.%I', tname);
-    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', tname || '_select', tname);
-    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', tname || '_insert', tname);
-    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', tname || '_update', tname);
-    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', tname || '_delete', tname);
+
+    -- Dropear TODAS las policies previas de la tabla (cualquier nombre).
+    FOR pol IN
+      SELECT policyname FROM pg_policies
+      WHERE schemaname = 'public' AND tablename = tname
+    LOOP
+      EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', pol.policyname, tname);
+    END LOOP;
 
     EXECUTE format(
       'CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING (%s)',
@@ -127,7 +139,13 @@ BEGIN
       tname || '_delete', tname,
       CASE WHEN tname = 'support_tickets' THEN 'public.can_ops()' ELSE write_pred END);
   END LOOP;
-END $$;
+END;
+$fn$;
+--> statement-breakpoint
+
+-- Aplica el RLS por rol a las tablas que ya existen ahora (núcleo 0000–0007).
+-- Las tablas de los módulos en scripts/ se cubren al final (0021), una vez creadas.
+SELECT public.apply_module_rls();
 --> statement-breakpoint
 
 -- ── Endurecer generar_nomina: solo finanzas + validación de tasa ────────────
@@ -273,30 +291,8 @@ $$;
 GRANT EXECUTE ON FUNCTION public.form_submit(text, jsonb) TO anon, authenticated;
 --> statement-breakpoint
 
--- ── RPC atómico para notas de soporte ───────────────────────────────────────
-CREATE OR REPLACE FUNCTION public.support_ticket_add_nota(p_id uuid, p_nota text)
-RETURNS public.support_tickets
-LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public
-AS $$
-DECLARE
-  row public.support_tickets;
-BEGIN
-  UPDATE public.support_tickets
-     SET notas_internas = array_append(COALESCE(notas_internas, ARRAY[]::text[]), p_nota),
-         updated_at = now()
-   WHERE id = p_id
-   RETURNING * INTO row;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Ticket % no encontrado', p_id;
-  END IF;
-  RETURN row;
-END;
-$$;
---> statement-breakpoint
-GRANT EXECUTE ON FUNCTION public.support_ticket_add_nota(uuid, text) TO authenticated;
---> statement-breakpoint
+-- NOTA: el RPC `support_ticket_add_nota` se define en 0020 (tras crear la tabla
+-- support_tickets, que vivía en scripts/).
 
 -- ── products.costo_total: derivado en BD (fuente única de verdad) ────────────
 -- Trigger que recalcula costo_total al insertar/actualizar, para que la carga

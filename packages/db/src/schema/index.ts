@@ -11,3 +11,7 @@ export * from './products';
 export * from './nomina';
 export * from './finanzas';
 export * from './organigrama';
+export * from './branding';
+export * from './kover';
+export * from './service-orders';
+export * from './support-tickets';
