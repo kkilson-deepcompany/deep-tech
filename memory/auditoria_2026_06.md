@@ -58,3 +58,10 @@ Auditoría completa (código, seguridad, arquitectura, finanzas) hecha el 2026-0
 - Refactor deliberado para flipar el cliente a `<Database>` (55 errores medidos; alinear domain types).
 
 Relacionado: [[deep-tech-hr-migration]], [[deep-tech-env-constraints]].
+
+## Nómina/Beneficios + import de datos (2026-06-09, opción C)
+- **Fase 1 nómina** (commit b9c26a7): split salario legal Bs + bono USD, semana_pago 1-4, generar_nomina(p_semana), fideicomiso_movimientos. Migración 0022 APLICADA.
+- **Import de datos reales** (Excel "LISTADO DE COLABORADORES.xlsx"): 32 colaboradores (reemplazó import previo desactualizado del 26-05 que tenía correos placeholder tipo k.*; contrato #10 re-vinculado a Kevin Kilson cédula 26849504). 11 fichas de seguro con cotización. Scripts de import fueron temporales (/tmp), no commiteados.
+- **Fase 2a beneficios** (commit 88d5a03): migración 0023 APLICADA — seguro_planes (10 semilla), colaborador_seguros (cotizacion jsonb), formaciones, becas (enlazables a expenses). Drizzle beneficios.ts. RLS: RRHH escribe, finanzas/auditor leen.
+- **PENDIENTE Fase 2b: la UI de beneficios** (reorganizar beneficios-page en pestañas Seguros/Fideicomiso/Formaciones/Becas + diálogos + integración con Gastos). La página actual es solo el flujo Kover. Datos ya cargados y consultables, falta vista.
+- También pendiente: la UI de nómina (nomina-registro-detail) podría mostrar las columnas nuevas (bono_usd, fideicomiso). Funciona sin eso.
