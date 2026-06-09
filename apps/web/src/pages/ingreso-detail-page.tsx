@@ -177,7 +177,7 @@ export function IngresoDetailPage() {
                           variance < 0 && 'text-destructive',
                         )}
                       >
-                        {formatMoney(String(variance))}
+                        {formatMoney(variance)}
                       </td>
                     </tr>
                   );
@@ -186,8 +186,8 @@ export function IngresoDetailPage() {
               <tfoot>
                 <tr className="border-t font-semibold">
                   <td className="px-4 py-3">Total</td>
-                  <td className="px-4 py-3 tabular-nums">{formatMoney(String(totalProjection))}</td>
-                  <td className="px-4 py-3 tabular-nums">{formatMoney(String(totalReality))}</td>
+                  <td className="px-4 py-3 tabular-nums">{formatMoney(totalProjection)}</td>
+                  <td className="px-4 py-3 tabular-nums">{formatMoney(totalReality)}</td>
                   <td
                     className={cn(
                       'px-4 py-3 text-right tabular-nums',
@@ -195,7 +195,7 @@ export function IngresoDetailPage() {
                       totalReality - totalProjection < 0 && 'text-destructive',
                     )}
                   >
-                    {formatMoney(String(totalReality - totalProjection))}
+                    {formatMoney(totalReality - totalProjection)}
                   </td>
                 </tr>
               </tfoot>

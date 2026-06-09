@@ -89,7 +89,14 @@ export function salarioEnLetrasYNumero(montoStr: string | number | null | undefi
     return { letras: 'CERO', numero: '0,00' };
   }
   const entero = Math.floor(n);
-  const letras = numeroALetras(entero).toUpperCase();
+  const centavos = Math.round((n - entero) * 100);
+  const base = numeroALetras(entero).toUpperCase();
+  // Incluye los céntimos en letras para que coincidan con el monto numérico
+  // (evita discrepancias letra-vs-número en contratos/constancias legales).
+  const letras =
+    centavos > 0
+      ? `${base} CON ${numeroALetras(centavos).toUpperCase()} CENTAVOS`
+      : base;
   const numero = n
     .toFixed(2)
     .replace('.', ',')

@@ -168,7 +168,7 @@ export function BudgetLineDialog({ open, onOpenChange, budgetId, line }: BudgetL
               ))}
             </div>
             <p className="text-right text-sm">
-              Total anual: <span className="font-semibold">{formatMoney(String(total))}</span>
+              Total anual: <span className="font-semibold">{formatMoney(total)}</span>
             </p>
           </div>
 

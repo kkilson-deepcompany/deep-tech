@@ -13,11 +13,20 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+// CORS restringido al sitio de producción. Configura ALLOWED_ORIGIN con
+// `supabase secrets set ALLOWED_ORIGIN=https://tu-dominio.com`. En su ausencia
+// se cae a SITE_URL; nunca a '*' para no exponer la función a cualquier origen.
+const allowedOrigin = Deno.env.get('ALLOWED_ORIGIN') ?? Deno.env.get('SITE_URL') ?? '';
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': allowedOrigin || 'null',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  Vary: 'Origin',
 };
+
+// Roles autorizados a enviar órdenes de servicio por correo.
+const SEND_ROLES = ['admin_rrhh', 'coordinador_ops', 'director', 'ceo'];
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -92,6 +101,16 @@ Deno.serve(async (req: Request) => {
     error: userError,
   } = await caller.auth.getUser();
   if (userError || !user) return json({ error: 'Sesión inválida' }, 401);
+
+  // Validar rol: solo operaciones/dirección pueden enviar órdenes por correo.
+  const { data: profile } = await caller
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (!profile || !SEND_ROLES.includes(profile.role)) {
+    return json({ error: 'No autorizado para enviar órdenes de servicio' }, 403);
+  }
 
   // Parse body
   let body: { order_id?: string; recipient_email?: string; subject?: string; message?: string };

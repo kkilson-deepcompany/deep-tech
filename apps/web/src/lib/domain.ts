@@ -611,6 +611,11 @@ export function costoCampos(origen: ProductOrigen, modo: string): CostoCampo[] {
   ];
 }
 
+/** Redondea a 2 decimales evitando el error de coma flotante de IEEE-754. */
+export function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
 /** Suma el costo total: los montos directos + los porcentajes aplicados al costo base. */
 export function calcularCostoTotal(campos: CostoCampo[], valores: Record<string, number>): number {
   const base = valores.costo_base ?? 0;
@@ -619,7 +624,7 @@ export function calcularCostoTotal(campos: CostoCampo[], valores: Record<string,
     const valor = valores[campo.field] ?? 0;
     total += campo.tipo === 'porcentaje' ? (base * valor) / 100 : valor;
   }
-  return total;
+  return round2(total);
 }
 
 /** Convierte una lista separada por comas ('7, 3, 0') en enteros. */
@@ -637,10 +642,10 @@ export function formatDate(value: string | null | undefined): string {
   return d && m && y ? `${d}/${m}/${y}` : value;
 }
 
-/** Formatea un monto numérico (que llega como string) con separadores. */
-export function formatMoney(value: string | null | undefined): string {
+/** Formatea un monto numérico (string desde PostgREST o number ya calculado). */
+export function formatMoney(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === '') return '—';
-  const n = Number(value);
+  const n = typeof value === 'number' ? value : Number(value);
   if (Number.isNaN(n)) return '—';
   return n.toLocaleString('es-VE', { maximumFractionDigits: 2 });
 }
