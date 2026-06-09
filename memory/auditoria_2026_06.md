@@ -29,8 +29,15 @@ Auditoría completa (código, seguridad, arquitectura, finanzas) hecha el 2026-0
 - Tests unitarios añadidos (domain, numero-a-letras, service-order, reservas). No se pudieron correr en el entorno (symlinks de node_modules rotos en /mnt/c); correr en WSL/CI.
 - `retencion_iva_pct`: CONFIRMADO por el usuario que SUMA al costo (correcto, es desembolso bruto). No cambiar.
 
+## APLICADO A PRODUCCIÓN (2026-06-09, vía Management API con PAT)
+- Migraciones **0008, 0020, 0021 aplicadas** a la BD real (proyecto faxrcsjgqkdntosdftke). 0009-0019 ya estaban (no re-aplicadas). Verificado: 28 tablas con 4 policies de rol c/u, tmp_authenticated_all eliminado, empresa_branding conserva lectura anon, support_tickets creada (faltaba en prod).
+- **database.types.ts regenerado** real (32 tipos) en packages/shared. Cliente AÚN sin `<Database>` (flip pendiente, necesita tsc para arreglar casts).
+- Roles corregidos: `k.kilson@deepcompany.com` promovido a admin_rrhh; 3 cuentas `_diag_*@local.test` eliminadas. Quedan 2 admins (k.kilson, rhernandez).
+
 ## Pendiente importante (no hecho aún)
-- **Rotar `service_role` key + contraseña Postgres** (estaban en claro en `.env.local`/`scripts/apply.ts`).
-- Regenerar `packages/shared/src/database.types.ts` (`supabase gen types`, necesita acceso a la DB) y tipar el cliente Supabase con `<Database>` (hoy todo es `any` casteado).
+- **REVOCAR el PAT `sbp_...`** usado en esta sesión (Account → Tokens) y **rotar `service_role`** (quedó en el chat) + contraseña Postgres.
+- `bun install` para actualizar bun.lock con el nuevo xlsx (CDN); redeploy edge functions + `supabase secrets set ALLOWED_ORIGIN=`.
+- Flip del cliente a `createClient<Database>` (necesita tsc corriendo para ajustar casts de queries.ts).
+- Correr `bun run build` + `bun run test` en WSL para validar todo.
 
 Relacionado: [[deep-tech-hr-migration]], [[deep-tech-env-constraints]].
