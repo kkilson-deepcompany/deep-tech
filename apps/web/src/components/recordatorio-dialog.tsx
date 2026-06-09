@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
+import { useDialog } from '@/lib/dialog-service';
 
 type RecordatorioFormValues = {
   title: string;
@@ -61,6 +62,7 @@ interface RecordatorioDialogProps {
 
 export function RecordatorioDialog({ open, onOpenChange, recordatorio }: RecordatorioDialogProps) {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const isEdit = recordatorio !== null;
   const {
     register,
@@ -205,7 +207,11 @@ export function RecordatorioDialog({ open, onOpenChange, recordatorio }: Recorda
                 variant="destructive"
                 disabled={busy}
                 onClick={() => {
-                  if (window.confirm('¿Eliminar este recordatorio?')) remove.mutate();
+                  void (async () => {
+                    if (await dialog.confirm({ description: '¿Eliminar este recordatorio?', tone: 'destructive' })) {
+                      remove.mutate();
+                    }
+                  })();
                 }}
               >
                 <Trash2 />

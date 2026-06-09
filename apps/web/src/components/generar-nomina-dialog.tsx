@@ -49,10 +49,14 @@ export function GenerarNominaDialog({ open, onOpenChange }: GenerarNominaDialogP
 
   const generar = useMutation({
     mutationFn: async (values: GenerarNominaValues) => {
+      const tasa = Number(values.tasa_bcv);
+      if (!Number.isFinite(tasa) || tasa <= 0) {
+        throw new Error('La tasa BCV debe ser un número mayor que 0.');
+      }
       const { data, error } = await supabase.rpc('generar_nomina', {
         p_periodo: values.periodo.trim(),
         p_tipo: values.tipo,
-        p_tasa_bcv: Number(values.tasa_bcv) || 1,
+        p_tasa_bcv: tasa,
       });
       if (error) throw new Error(error.message);
       return data as string | null;
@@ -104,8 +108,17 @@ export function GenerarNominaDialog({ open, onOpenChange }: GenerarNominaDialogP
             </Select>
           </FormField>
 
-          <FormField label="Tasa BCV" htmlFor="tasa_bcv">
-            <Input id="tasa_bcv" type="number" min="0" step="0.000001" {...register('tasa_bcv')} />
+          <FormField label="Tasa BCV" htmlFor="tasa_bcv" required error={errors.tasa_bcv?.message}>
+            <Input
+              id="tasa_bcv"
+              type="number"
+              min="0"
+              step="0.000001"
+              {...register('tasa_bcv', {
+                required: 'La tasa BCV es obligatoria',
+                validate: (v) => Number(v) > 0 || 'La tasa debe ser mayor que 0',
+              })}
+            />
           </FormField>
 
           <DialogFooter className="sm:col-span-2">

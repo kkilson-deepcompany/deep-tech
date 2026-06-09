@@ -15,6 +15,7 @@ import {
   type HealthAnswer,
   type KoverFormData,
 } from '@/lib/kover-form';
+import { useDialog } from '@/lib/dialog-service';
 import { FormField } from '@/components/form-field';
 import { KoverFileUpload } from '@/components/kover-file-upload';
 import { Button } from '@/components/ui/button';
@@ -228,6 +229,7 @@ export function KoverForm({
 }: KoverFormProps) {
   const [data, setData] = useState<KoverFormData>({ ...EMPTY_KOVER_FORM, ...initialData });
   const [open, setOpen] = useState<number | null>(1);
+  const dialog = useDialog();
 
   useEffect(() => {
     setData({ ...EMPTY_KOVER_FORM, ...initialData });
@@ -251,18 +253,30 @@ export function KoverForm({
     setOpen((cur) => (cur === n ? null : n));
   }
 
-  function handleSubmit(intent: 'draft' | 'final') {
+  async function handleSubmit(intent: 'draft' | 'final') {
     if (intent === 'final') {
       if (!data.first_name.trim() || !data.last_name.trim()) {
-        alert('Faltan nombres y apellidos del solicitante.');
+        await dialog.alert({
+          title: 'Datos incompletos',
+          description: 'Faltan nombres y apellidos del solicitante.',
+          tone: 'warning',
+        });
         return;
       }
       if (!data.id_document.trim()) {
-        alert('Falta la cédula del solicitante.');
+        await dialog.alert({
+          title: 'Datos incompletos',
+          description: 'Falta la cédula del solicitante.',
+          tone: 'warning',
+        });
         return;
       }
       if (!data.accepted_terms) {
-        alert('Debes aceptar los términos y condiciones para enviar.');
+        await dialog.alert({
+          title: 'Términos y condiciones',
+          description: 'Debes aceptar los términos y condiciones para enviar.',
+          tone: 'warning',
+        });
         return;
       }
     }

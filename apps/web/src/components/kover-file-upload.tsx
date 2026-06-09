@@ -10,6 +10,7 @@ import {
   fetchKoverDocuments,
   fetchKoverDocumentsByToken,
 } from '@/lib/queries';
+import { useDialog } from '@/lib/dialog-service';
 import type { KoverDocType, KoverDocument } from '@/lib/kover-form';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
@@ -73,6 +74,7 @@ export function KoverFileUpload({
   readOnly = false,
 }: Props) {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -300,8 +302,15 @@ export function KoverFileUpload({
               {!readOnly && (
                 <button
                   type="button"
-                  onClick={() => {
-                    if (window.confirm(`¿Eliminar ${d.file_name}?`)) remove.mutate(d);
+                  onClick={async () => {
+                    if (
+                      await dialog.confirm({
+                        description: `¿Eliminar ${d.file_name}?`,
+                        tone: 'destructive',
+                      })
+                    ) {
+                      remove.mutate(d);
+                    }
                   }}
                   title="Eliminar"
                   className="text-muted-foreground hover:text-destructive p-1"

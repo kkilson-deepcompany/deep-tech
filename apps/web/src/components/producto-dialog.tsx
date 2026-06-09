@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
+import { useDialog } from '@/lib/dialog-service';
 
 type ProductFormValues = {
   sku: string;
@@ -118,6 +119,7 @@ interface ProductoDialogProps {
 
 export function ProductoDialog({ open, onOpenChange, producto }: ProductoDialogProps) {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const isEdit = producto !== null;
   const [subiendoImagen, setSubiendoImagen] = useState(false);
   const {
@@ -312,7 +314,7 @@ export function ProductoDialog({ open, onOpenChange, producto }: ProductoDialogP
               ))}
             </Select>
           </FormField>
-          {values.origen === 'CN' ? (
+          {values.origen === 'CN' && (
             <FormField label="Modo de envío" htmlFor="modo_envio">
               <Select id="modo_envio" {...register('modo_envio')}>
                 {MODOS_ENVIO.map((m) => (
@@ -322,18 +324,11 @@ export function ProductoDialog({ open, onOpenChange, producto }: ProductoDialogP
                 ))}
               </Select>
             </FormField>
-          ) : (
-            <label className="flex items-end gap-2 pb-2 text-sm">
-              <input type="checkbox" className="accent-primary size-4" {...register('activo')} />
-              Producto activo
-            </label>
           )}
-          {values.origen === 'CN' && (
-            <label className="flex items-end gap-2 pb-2 text-sm">
-              <input type="checkbox" className="accent-primary size-4" {...register('activo')} />
-              Producto activo
-            </label>
-          )}
+          <label className="flex items-end gap-2 pb-2 text-sm">
+            <input type="checkbox" className="accent-primary size-4" {...register('activo')} />
+            Producto activo
+          </label>
 
           <Section>
             {values.origen === 'VE'
@@ -353,7 +348,7 @@ export function ProductoDialog({ open, onOpenChange, producto }: ProductoDialogP
           ))}
           <p className="bg-muted rounded-md px-3 py-2 text-sm sm:col-span-2">
             Costo total estimado:{' '}
-            <span className="font-semibold tabular-nums">{formatMoney(String(costoTotal))}</span>
+            <span className="font-semibold tabular-nums">{formatMoney(costoTotal)}</span>
           </p>
 
           <Section>Inventario</Section>
@@ -403,7 +398,11 @@ export function ProductoDialog({ open, onOpenChange, producto }: ProductoDialogP
                 variant="destructive"
                 disabled={busy}
                 onClick={() => {
-                  if (window.confirm('¿Eliminar este producto?')) remove.mutate();
+                  void (async () => {
+                    if (await dialog.confirm({ description: '¿Eliminar este producto?', tone: 'destructive' })) {
+                      remove.mutate();
+                    }
+                  })();
                 }}
               >
                 <Trash2 />

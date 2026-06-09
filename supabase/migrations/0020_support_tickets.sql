@@ -85,3 +85,26 @@ drop trigger if exists support_tickets_touch_updated_at on public.support_ticket
 create trigger support_tickets_touch_updated_at
   before update on public.support_tickets
   for each row execute function public.support_tickets_touch_updated_at();
+
+-- RPC: append atómico de nota interna (evita perder notas por read-modify-write
+-- concurrente con last-write-wins). El trigger actualiza los timestamps.
+create or replace function public.support_ticket_add_nota(p_id uuid, p_nota text)
+returns public.support_tickets
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_row public.support_tickets;
+begin
+  update public.support_tickets
+     set notas_internas = array_append(coalesce(notas_internas, array[]::text[]), p_nota)
+   where id = p_id
+   returning * into v_row;
+  if not found then
+    raise exception 'Ticket % no encontrado', p_id;
+  end if;
+  return v_row;
+end $$;
+
+grant execute on function public.support_ticket_add_nota(uuid, text) to authenticated;

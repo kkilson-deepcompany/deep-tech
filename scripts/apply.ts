@@ -2,7 +2,11 @@
  * Aplica un archivo SQL contra el pooler IPv4 de Supabase.
  * Uso:
  *   cd /mnt/c/Users/kilso/Downloads/deep.tech
- *   bun run scripts/apply.ts scripts/kover-public.sql '<password>'
+ *   bun run scripts/apply.ts supabase/migrations/0008_rls_por_rol.sql '<password>'
+ *
+ * Las migraciones formales viven en supabase/migrations/ (0000–0021) y se
+ * aplican en orden. Este script es solo un ayudante manual mientras el entorno
+ * no alcanza la DB por 5432; preferir `supabase db push` cuando sea posible.
  *
  * El segundo argumento (password) se pasa explícito porque en WSL las env
  * vars del shell no cruzan a bun.exe de Windows. Si se omite, intenta leer

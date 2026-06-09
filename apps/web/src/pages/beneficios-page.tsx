@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { useDialog } from '@/lib/dialog-service';
 
 type Tab = 'borradores' | 'enviadas';
 
@@ -38,6 +39,7 @@ const STATUS_LABEL: Record<KoverSolicitud['status'], { label: string; tone: stri
 
 export function BeneficiosPage() {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const solicitudesQuery = useQuery({
     queryKey: ['kover_solicitudes'],
     queryFn: fetchKoverSolicitudes,
@@ -335,8 +337,15 @@ export function BeneficiosPage() {
                         <button
                           type="button"
                           title="Eliminar"
-                          onClick={() => {
-                            if (window.confirm('¿Eliminar esta solicitud?')) remove.mutate(s.id);
+                          onClick={async () => {
+                            if (
+                              await dialog.confirm({
+                                description: '¿Eliminar esta solicitud?',
+                                tone: 'destructive',
+                              })
+                            ) {
+                              remove.mutate(s.id);
+                            }
                           }}
                           className="text-muted-foreground hover:text-destructive p-1"
                         >
@@ -399,11 +408,12 @@ export function BeneficiosPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
                         if (
-                          window.confirm(
-                            'Regenerar invalida el link anterior. ¿Continuar?',
-                          )
+                          await dialog.confirm({
+                            description: 'Regenerar invalida el link anterior. ¿Continuar?',
+                            tone: 'warning',
+                          })
                         ) {
                           shareGen.mutate(sharing.id);
                         }
@@ -416,11 +426,12 @@ export function BeneficiosPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
                         if (
-                          window.confirm(
-                            '¿Revocar el link? El colaborador ya no podrá abrirlo.',
-                          )
+                          await dialog.confirm({
+                            description: '¿Revocar el link? El colaborador ya no podrá abrirlo.',
+                            tone: 'destructive',
+                          })
                         ) {
                           shareRevoke.mutate(sharing.id);
                         }

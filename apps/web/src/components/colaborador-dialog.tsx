@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
+import { useDialog } from '@/lib/dialog-service';
 
 type ColaboradorFormValues = {
   nombre: string;
@@ -115,6 +116,7 @@ interface ColaboradorDialogProps {
 
 export function ColaboradorDialog({ open, onOpenChange, colaborador }: ColaboradorDialogProps) {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const isEdit = colaborador !== null;
   const {
     register,
@@ -334,7 +336,11 @@ export function ColaboradorDialog({ open, onOpenChange, colaborador }: Colaborad
                 variant="destructive"
                 disabled={busy}
                 onClick={() => {
-                  if (window.confirm('¿Eliminar este colaborador?')) remove.mutate();
+                  void (async () => {
+                    if (await dialog.confirm({ description: '¿Eliminar este colaborador?', tone: 'destructive' })) {
+                      remove.mutate();
+                    }
+                  })();
                 }}
               >
                 <Trash2 />

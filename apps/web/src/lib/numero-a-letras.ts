@@ -21,10 +21,10 @@ const CIENTOS = [
 ];
 
 function decenas(n: number): string {
-  if (n < 30) return UNIDADES[n];
+  if (n < 30) return UNIDADES[n] ?? '';
   const d = Math.floor(n / 10);
   const u = n % 10;
-  return u === 0 ? DECENAS[d] : `${DECENAS[d]} y ${UNIDADES[u]}`;
+  return u === 0 ? (DECENAS[d] ?? '') : `${DECENAS[d] ?? ''} y ${UNIDADES[u] ?? ''}`;
 }
 
 function centenas(n: number): string {
@@ -32,7 +32,7 @@ function centenas(n: number): string {
   if (n < 100) return decenas(n);
   const c = Math.floor(n / 100);
   const r = n % 100;
-  return r === 0 ? CIENTOS[c] : `${CIENTOS[c]} ${decenas(r)}`;
+  return r === 0 ? (CIENTOS[c] ?? '') : `${CIENTOS[c] ?? ''} ${decenas(r)}`;
 }
 
 export function numeroALetras(n: number): string {
@@ -89,7 +89,14 @@ export function salarioEnLetrasYNumero(montoStr: string | number | null | undefi
     return { letras: 'CERO', numero: '0,00' };
   }
   const entero = Math.floor(n);
-  const letras = numeroALetras(entero).toUpperCase();
+  const centavos = Math.round((n - entero) * 100);
+  const base = numeroALetras(entero).toUpperCase();
+  // Incluye los céntimos en letras para que coincidan con el monto numérico
+  // (evita discrepancias letra-vs-número en contratos/constancias legales).
+  const letras =
+    centavos > 0
+      ? `${base} CON ${numeroALetras(centavos).toUpperCase()} CENTAVOS`
+      : base;
   const numero = n
     .toFixed(2)
     .replace('.', ',')

@@ -109,11 +109,11 @@ export function PresupuestoDetailPage() {
               <tr>
                 {monthlyTotals.map((amount, i) => (
                   <td key={MESES[i]} className="px-2 py-2 text-right tabular-nums">
-                    {formatMoney(String(amount))}
+                    {formatMoney(amount)}
                   </td>
                 ))}
                 <td className="px-2 py-2 text-right font-semibold tabular-nums">
-                  {formatMoney(String(grandTotal))}
+                  {formatMoney(grandTotal)}
                 </td>
               </tr>
             </tbody>
@@ -178,7 +178,7 @@ export function PresupuestoDetailPage() {
                       Total
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">
-                      {formatMoney(String(grandTotal))}
+                      {formatMoney(grandTotal)}
                     </td>
                   </tr>
                 </tfoot>

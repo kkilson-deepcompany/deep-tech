@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
+import { useDialog } from '@/lib/dialog-service';
 
 type DocumentoFormValues = {
   candidato_id: string;
@@ -75,6 +76,7 @@ export function DocumentoDialog({
   carpetas,
 }: DocumentoDialogProps) {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const isEdit = documento !== null;
   const {
     register,
@@ -231,7 +233,11 @@ export function DocumentoDialog({
                 variant="destructive"
                 disabled={busy}
                 onClick={() => {
-                  if (window.confirm('¿Eliminar este expediente?')) remove.mutate();
+                  void (async () => {
+                    if (await dialog.confirm({ description: '¿Eliminar este expediente?', tone: 'destructive' })) {
+                      remove.mutate();
+                    }
+                  })();
                 }}
               >
                 <Trash2 />

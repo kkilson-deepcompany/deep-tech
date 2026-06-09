@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
+import { useDialog } from '@/lib/dialog-service';
 
 type ContratoFormValues = {
   numero: string;
@@ -78,6 +79,7 @@ export function ContratoDialog({
   colaboradores,
 }: ContratoDialogProps) {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const isEdit = contrato !== null;
   const {
     register,
@@ -304,7 +306,11 @@ export function ContratoDialog({
                 variant="destructive"
                 disabled={busy}
                 onClick={() => {
-                  if (window.confirm('¿Eliminar este contrato?')) remove.mutate();
+                  void (async () => {
+                    if (await dialog.confirm({ description: '¿Eliminar este contrato?', tone: 'destructive' })) {
+                      remove.mutate();
+                    }
+                  })();
                 }}
               >
                 <Trash2 />

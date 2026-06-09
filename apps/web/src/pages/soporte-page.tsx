@@ -41,6 +41,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { useDialog } from '@/lib/dialog-service';
 
 type Tab = 'abiertos' | 'cerrados';
 
@@ -96,6 +97,7 @@ function formatDate(iso: string | null): string {
 
 export function SoportePage() {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
 
   const ticketsQuery = useQuery({
     queryKey: ['support_tickets'],
@@ -395,8 +397,13 @@ export function SoportePage() {
               isDeleting={deleteMutation.isPending}
               onUpdate={(payload) => updateMutation.mutate({ id: selected.id, payload })}
               onAddNota={(nota) => notaMutation.mutate({ id: selected.id, nota })}
-              onDelete={() => {
-                if (confirm(`¿Eliminar el ticket ${selected.id}? Esta acción no se puede deshacer.`)) {
+              onDelete={async () => {
+                if (
+                  await dialog.confirm({
+                    description: `¿Eliminar el ticket ${selected.id}? Esta acción no se puede deshacer.`,
+                    tone: 'destructive',
+                  })
+                ) {
                   deleteMutation.mutate(selected.id);
                 }
               }}

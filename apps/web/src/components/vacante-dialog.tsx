@@ -28,6 +28,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
+import { useDialog } from '@/lib/dialog-service';
 
 type VacanteFormValues = {
   titulo: string;
@@ -84,6 +85,7 @@ interface VacanteDialogProps {
 
 export function VacanteDialog({ open, onOpenChange, vacante }: VacanteDialogProps) {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const isEdit = vacante !== null;
   const {
     register,
@@ -309,7 +311,11 @@ export function VacanteDialog({ open, onOpenChange, vacante }: VacanteDialogProp
                 variant="destructive"
                 disabled={busy}
                 onClick={() => {
-                  if (window.confirm('¿Eliminar esta vacante?')) remove.mutate();
+                  void (async () => {
+                    if (await dialog.confirm({ description: '¿Eliminar esta vacante?', tone: 'destructive' })) {
+                      remove.mutate();
+                    }
+                  })();
                 }}
               >
                 <Trash2 />

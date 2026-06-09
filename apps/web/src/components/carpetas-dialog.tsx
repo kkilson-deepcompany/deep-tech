@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { useDialog } from '@/lib/dialog-service';
 
 interface CarpetasDialogProps {
   open: boolean;
@@ -23,6 +24,7 @@ interface CarpetasDialogProps {
 
 export function CarpetasDialog({ open, onOpenChange }: CarpetasDialogProps) {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const { data: carpetas } = useQuery({ queryKey: ['carpetas'], queryFn: fetchCarpetas });
   const [nombre, setNombre] = useState('');
 
@@ -77,8 +79,13 @@ export function CarpetasDialog({ open, onOpenChange }: CarpetasDialogProps) {
                   size="icon"
                   disabled={remove.isPending}
                   aria-label={`Eliminar ${carpeta.nombre}`}
-                  onClick={() => {
-                    if (window.confirm(`¿Eliminar la carpeta "${carpeta.nombre}"?`)) {
+                  onClick={async () => {
+                    if (
+                      await dialog.confirm({
+                        description: `¿Eliminar la carpeta "${carpeta.nombre}"?`,
+                        tone: 'destructive',
+                      })
+                    ) {
                       remove.mutate(carpeta.id);
                     }
                   }}

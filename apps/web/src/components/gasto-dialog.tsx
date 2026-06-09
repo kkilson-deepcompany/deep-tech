@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
+import { useDialog } from '@/lib/dialog-service';
 
 type GastoFormValues = {
   date: string;
@@ -55,6 +56,7 @@ interface GastoDialogProps {
 
 export function GastoDialog({ open, onOpenChange, gasto }: GastoDialogProps) {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const isEdit = gasto !== null;
   const {
     register,
@@ -190,7 +192,11 @@ export function GastoDialog({ open, onOpenChange, gasto }: GastoDialogProps) {
                 variant="destructive"
                 disabled={busy}
                 onClick={() => {
-                  if (window.confirm('¿Eliminar este gasto?')) remove.mutate();
+                  void (async () => {
+                    if (await dialog.confirm({ description: '¿Eliminar este gasto?', tone: 'destructive' })) {
+                      remove.mutate();
+                    }
+                  })();
                 }}
               >
                 <Trash2 />

@@ -425,13 +425,13 @@ export async function appendSupportTicketNota(
   ticketId: string,
   nota: string,
 ): Promise<SupportTicket> {
-  const { data, error } = await supabase
-    .from('support_tickets')
-    .select('notas_internas')
-    .eq('id', ticketId)
-    .single();
-  if (error) throw error;
+  // Append atómico vía RPC (array_append en BD) para evitar perder notas
+  // concurrentes por un read-modify-write con last-write-wins.
   const stamp = new Date().toLocaleString('es-VE', { hour: '2-digit', minute: '2-digit' });
-  const nuevas = [...((data?.notas_internas as string[] | null) ?? []), `[${stamp}] ${nota}`];
-  return updateSupportTicket(ticketId, { notas_internas: nuevas });
+  const { data, error } = await supabase.rpc('support_ticket_add_nota', {
+    p_id: ticketId,
+    p_nota: `[${stamp}] ${nota}`,
+  });
+  if (error) throw error;
+  return data as SupportTicket;
 }
