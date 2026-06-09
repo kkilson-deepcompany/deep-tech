@@ -1,4 +1,4 @@
-import { boolean, date, numeric, pgTable, text, uuid } from 'drizzle-orm/pg-core';
+import { boolean, date, numeric, pgTable, smallint, text, uuid } from 'drizzle-orm/pg-core';
 import { createdAt, id } from './_shared';
 import { colaboradorEstadoEnum, frecuenciaPagoEnum, monedaEnum } from './enums';
 import { candidatos } from './candidatos';
@@ -19,6 +19,13 @@ export const colaboradores = pgTable('colaboradores', {
   finPeriodoPrueba: date('fin_periodo_prueba'),
   finContrato: date('fin_contrato'),
   salario: numeric('salario', { precision: 12, scale: 2 }),
+  // Modelo split: salario legal en Bs (base de IVSS/RPE/FAOV/fideicomiso) + bono USD.
+  salarioBaseLegalBs: numeric('salario_base_legal_bs', { precision: 14, scale: 2 })
+    .notNull()
+    .default('0'),
+  bonoUsd: numeric('bono_usd', { precision: 12, scale: 2 }).notNull().default('0'),
+  // Semana de pago (1-4) para la nómina semanal escalonada; null = solo mensual.
+  semanaPago: smallint('semana_pago'),
   diaPago: text('dia_pago').notNull().default('30'),
   frecuenciaPago: frecuenciaPagoEnum('frecuencia_pago').notNull().default('Mensual'),
   moneda: monedaEnum('moneda').notNull().default('USD'),

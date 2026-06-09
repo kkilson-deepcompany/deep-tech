@@ -196,6 +196,7 @@ export type Database = {
           aplica_rpe: boolean
           banco: string | null
           bono_alimentacion: number
+          bono_usd: number
           candidato_id: string | null
           cargo: string
           cartas_trabajo_url: string | null
@@ -234,6 +235,8 @@ export type Database = {
           rpe_patron_pct: number
           rpe_worker_pct: number
           salario: number | null
+          salario_base_legal_bs: number
+          semana_pago: number | null
           telefono: string | null
         }
         Insert: {
@@ -248,6 +251,7 @@ export type Database = {
           aplica_rpe?: boolean
           banco?: string | null
           bono_alimentacion?: number
+          bono_usd?: number
           candidato_id?: string | null
           cargo: string
           cartas_trabajo_url?: string | null
@@ -286,6 +290,8 @@ export type Database = {
           rpe_patron_pct?: number
           rpe_worker_pct?: number
           salario?: number | null
+          salario_base_legal_bs?: number
+          semana_pago?: number | null
           telefono?: string | null
         }
         Update: {
@@ -300,6 +306,7 @@ export type Database = {
           aplica_rpe?: boolean
           banco?: string | null
           bono_alimentacion?: number
+          bono_usd?: number
           candidato_id?: string | null
           cargo?: string
           cartas_trabajo_url?: string | null
@@ -338,6 +345,8 @@ export type Database = {
           rpe_patron_pct?: number
           rpe_worker_pct?: number
           salario?: number | null
+          salario_base_legal_bs?: number
+          semana_pago?: number | null
           telefono?: string | null
         }
         Relationships: [
@@ -656,6 +665,60 @@ export type Database = {
         }
         Relationships: []
       }
+      fideicomiso_movimientos: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          id: string
+          monto_bs: number
+          monto_usd: number
+          nomina_id: string | null
+          nota: string | null
+          periodo: string
+          tasa_bcv: number
+          tipo: string
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          id?: string
+          monto_bs?: number
+          monto_usd?: number
+          nomina_id?: string | null
+          nota?: string | null
+          periodo: string
+          tasa_bcv?: number
+          tipo?: string
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          id?: string
+          monto_bs?: number
+          monto_usd?: number
+          nomina_id?: string | null
+          nota?: string | null
+          periodo?: string
+          tasa_bcv?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fideicomiso_movimientos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fideicomiso_movimientos_nomina_id_fkey"
+            columns: ["nomina_id"]
+            isOneToOne: false
+            referencedRelation: "nominas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guardias: {
         Row: {
           actores: string[]
@@ -891,10 +954,13 @@ export type Database = {
         Row: {
           bonificaciones_extras: number
           bono_alimentacion: number
+          bono_usd: number
           colaborador_id: string
           costo_total_patrono: number
           faov: number
           faov_patrono: number
+          fideicomiso_bs: number
+          fideicomiso_usd: number
           frecuencia: Database["public"]["Enums"]["frecuencia_pago"]
           id: string
           inces_patrono: number
@@ -908,6 +974,7 @@ export type Database = {
           otras_deducciones: number
           pension_patrono: number
           salario_base: number
+          salario_legal_bs: number
           spf: number
           spf_patrono: number
           total_asignaciones: number
@@ -916,10 +983,13 @@ export type Database = {
         Insert: {
           bonificaciones_extras?: number
           bono_alimentacion?: number
+          bono_usd?: number
           colaborador_id: string
           costo_total_patrono?: number
           faov?: number
           faov_patrono?: number
+          fideicomiso_bs?: number
+          fideicomiso_usd?: number
           frecuencia: Database["public"]["Enums"]["frecuencia_pago"]
           id?: string
           inces_patrono?: number
@@ -933,6 +1003,7 @@ export type Database = {
           otras_deducciones?: number
           pension_patrono?: number
           salario_base: number
+          salario_legal_bs?: number
           spf?: number
           spf_patrono?: number
           total_asignaciones?: number
@@ -941,10 +1012,13 @@ export type Database = {
         Update: {
           bonificaciones_extras?: number
           bono_alimentacion?: number
+          bono_usd?: number
           colaborador_id?: string
           costo_total_patrono?: number
           faov?: number
           faov_patrono?: number
+          fideicomiso_bs?: number
+          fideicomiso_usd?: number
           frecuencia?: Database["public"]["Enums"]["frecuencia_pago"]
           id?: string
           inces_patrono?: number
@@ -958,6 +1032,7 @@ export type Database = {
           otras_deducciones?: number
           pension_patrono?: number
           salario_base?: number
+          salario_legal_bs?: number
           spf?: number
           spf_patrono?: number
           total_asignaciones?: number
@@ -1645,6 +1720,7 @@ export type Database = {
       generar_nomina: {
         Args: {
           p_periodo: string
+          p_semana?: number
           p_tasa_bcv: number
           p_tipo: Database["public"]["Enums"]["nomina_tipo"]
         }

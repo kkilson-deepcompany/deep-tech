@@ -9,6 +9,7 @@ export * from './contratos';
 export * from './guardias';
 export * from './products';
 export * from './nomina';
+export * from './fideicomiso';
 export * from './finanzas';
 export * from './organigrama';
 export * from './branding';

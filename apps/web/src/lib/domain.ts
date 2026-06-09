@@ -209,6 +209,9 @@ export interface Colaborador {
   fin_periodo_prueba: string | null;
   fin_contrato: string | null;
   salario: string | null;
+  salario_base_legal_bs: string;
+  bono_usd: string;
+  semana_pago: number | null;
   dia_pago: string;
   frecuencia_pago: FrecuenciaPago;
   moneda: Moneda;
@@ -451,6 +454,10 @@ export interface NominaRegistro {
   salario_base: string;
   frecuencia: FrecuenciaPago;
   moneda: Moneda;
+  salario_legal_bs: string;
+  bono_usd: string;
+  fideicomiso_usd: string;
+  fideicomiso_bs: string;
   bono_alimentacion: string;
   bonificaciones_extras: string;
   ivss: string;

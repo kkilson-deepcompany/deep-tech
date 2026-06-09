@@ -24,9 +24,10 @@ type GenerarNominaValues = {
   periodo: string;
   tipo: string;
   tasa_bcv: string;
+  semana: string;
 };
 
-const DEFAULTS: GenerarNominaValues = { periodo: '', tipo: 'Mensual', tasa_bcv: '1' };
+const DEFAULTS: GenerarNominaValues = { periodo: '', tipo: 'Mensual', tasa_bcv: '1', semana: '' };
 
 interface GenerarNominaDialogProps {
   open: boolean;
@@ -57,6 +58,7 @@ export function GenerarNominaDialog({ open, onOpenChange }: GenerarNominaDialogP
         p_periodo: values.periodo.trim(),
         p_tipo: values.tipo,
         p_tasa_bcv: tasa,
+        p_semana: values.semana ? Number(values.semana) : null,
       });
       if (error) throw new Error(error.message);
       return data as string | null;
@@ -105,6 +107,16 @@ export function GenerarNominaDialog({ open, onOpenChange }: GenerarNominaDialogP
                   {t}
                 </option>
               ))}
+            </Select>
+          </FormField>
+
+          <FormField label="Semana (nómina escalonada)" htmlFor="semana">
+            <Select id="semana" {...register('semana')}>
+              <option value="">Todos (mensual)</option>
+              <option value="1">Solo Semana 1</option>
+              <option value="2">Solo Semana 2</option>
+              <option value="3">Solo Semana 3</option>
+              <option value="4">Solo Semana 4</option>
             </Select>
           </FormField>
 

@@ -45,6 +45,9 @@ type ColaboradorFormValues = {
   fin_periodo_prueba: string;
   fin_contrato: string;
   salario: string;
+  salario_base_legal_bs: string;
+  bono_usd: string;
+  semana_pago: string;
   moneda: string;
   frecuencia_pago: string;
   dia_pago: string;
@@ -80,6 +83,9 @@ function toFormValues(c: Colaborador | null): ColaboradorFormValues {
     fin_periodo_prueba: c?.fin_periodo_prueba ?? '',
     fin_contrato: c?.fin_contrato ?? '',
     salario: c?.salario ?? '',
+    salario_base_legal_bs: c?.salario_base_legal_bs ?? '0',
+    bono_usd: c?.bono_usd ?? '',
+    semana_pago: c?.semana_pago != null ? String(c.semana_pago) : '',
     moneda: c?.moneda ?? 'USD',
     frecuencia_pago: c?.frecuencia_pago ?? 'Mensual',
     dia_pago: c?.dia_pago ?? '30',
@@ -131,7 +137,10 @@ export function ColaboradorDialog({ open, onOpenChange, colaborador }: Colaborad
 
   const save = useMutation({
     mutationFn: async (values: ColaboradorFormValues) => {
-      const payload = nullifyEmpty(values);
+      const payload = nullifyEmpty(values) as Record<string, unknown>;
+      // Columnas NOT NULL: nunca enviar null (nullifyEmpty convierte '' → null).
+      if (payload.salario_base_legal_bs == null) payload.salario_base_legal_bs = '0';
+      if (payload.bono_usd == null) payload.bono_usd = '0';
       const { error } =
         isEdit && colaborador
           ? await supabase.from('colaboradores').update(payload).eq('id', colaborador.id)
@@ -250,8 +259,29 @@ export function ColaboradorDialog({ open, onOpenChange, colaborador }: Colaborad
           </FormField>
 
           <SectionLabel>Compensación</SectionLabel>
-          <FormField label="Salario" htmlFor="salario">
+          <FormField label="Pago total (referencia)" htmlFor="salario">
             <Input id="salario" type="number" min="0" step="0.01" {...register('salario')} />
+          </FormField>
+          <FormField label="Bono USD (sin deducciones)" htmlFor="bono_usd">
+            <Input id="bono_usd" type="number" min="0" step="0.01" {...register('bono_usd')} />
+          </FormField>
+          <FormField label="Salario legal (Bs)" htmlFor="salario_base_legal_bs">
+            <Input
+              id="salario_base_legal_bs"
+              type="number"
+              min="0"
+              step="0.01"
+              {...register('salario_base_legal_bs')}
+            />
+          </FormField>
+          <FormField label="Semana de pago (1-4)" htmlFor="semana_pago">
+            <Select id="semana_pago" {...register('semana_pago')}>
+              <option value="">Solo mensual</option>
+              <option value="1">Semana 1</option>
+              <option value="2">Semana 2</option>
+              <option value="3">Semana 3</option>
+              <option value="4">Semana 4</option>
+            </Select>
           </FormField>
           <FormField label="Moneda" htmlFor="moneda">
             <Select id="moneda" {...register('moneda')}>

@@ -30,6 +30,12 @@ export const nominaRegistros = pgTable('nomina_registros', {
   frecuencia: frecuenciaPagoEnum('frecuencia').notNull(),
   moneda: monedaEnum('moneda').notNull(),
 
+  // Modelo split + fideicomiso (ver migración 0022)
+  salarioLegalBs: numeric('salario_legal_bs', { precision: 14, scale: 2 }).notNull().default('0'),
+  bonoUsd: numeric('bono_usd', { precision: 12, scale: 2 }).notNull().default('0'),
+  fideicomisoUsd: numeric('fideicomiso_usd', { precision: 12, scale: 2 }).notNull().default('0'),
+  fideicomisoBs: numeric('fideicomiso_bs', { precision: 14, scale: 2 }).notNull().default('0'),
+
   // Asignaciones
   bonoAlimentacion: numeric('bono_alimentacion', { precision: 12, scale: 2 })
     .notNull()
