@@ -13,27 +13,26 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-// CORS restringido al sitio de producción. Configura ALLOWED_ORIGIN con
-// `supabase secrets set ALLOWED_ORIGIN=https://tu-dominio.com`. En su ausencia
-// se cae a SITE_URL; nunca a '*' para no exponer la función a cualquier origen.
-const allowedOrigin = Deno.env.get('ALLOWED_ORIGIN') ?? Deno.env.get('SITE_URL') ?? '';
+// CORS por allowlist. Configura los orígenes permitidos (separados por coma) con
+// `supabase secrets set ALLOWED_ORIGINS=http://localhost:5173,https://tu-dominio`.
+// Se hace echo del Origin de la petición si está en la lista; nunca '*'.
+const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? 'http://localhost:5173')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': allowedOrigin || 'null',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  Vary: 'Origin',
-};
+function buildCors(origin: string | null): Record<string, string> {
+  const allow = origin && ALLOWED_ORIGINS.includes(origin) ? origin : (ALLOWED_ORIGINS[0] ?? 'null');
+  return {
+    'Access-Control-Allow-Origin': allow,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    Vary: 'Origin',
+  };
+}
 
 // Roles autorizados a enviar órdenes de servicio por correo.
 const SEND_ROLES = ['admin_rrhh', 'coordinador_ops', 'director', 'ceo'];
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
 
 function escapeHtml(s: string): string {
   return s
@@ -67,7 +66,14 @@ function buildEmailHtml(args: {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  const cors = buildCors(req.headers.get('Origin'));
+  const json = (body: unknown, status = 200): Response =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...cors, 'Content-Type': 'application/json' },
+    });
+
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'Método no permitido' }, 405);
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
