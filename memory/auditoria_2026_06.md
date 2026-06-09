@@ -24,11 +24,13 @@ Auditoría completa (código, seguridad, arquitectura, finanzas) hecha el 2026-0
 - **PENDIENTE: aplicar 0008-0021 a la BD** en orden (Management API). `empresa_branding` queda fuera del modelo de rol (conserva lectura anon).
 - Caveat: drizzle `_journal.json`/snapshots solo cubren 0000-0007. Si se corre `drizzle-kit generate` intentará recrear las tablas nuevas. Workflow real = aplicar SQL por Management API, no `drizzle migrate`.
 
+## Más resuelto (commit 71a4208)
+- `xlsx` repinneado al build parcheado del CDN de SheetJS (0.20.3) — resuelve los CVEs. Mismo API. **PENDIENTE: `bun install` para actualizar bun.lock.**
+- Tests unitarios añadidos (domain, numero-a-letras, service-order, reservas). No se pudieron correr en el entorno (symlinks de node_modules rotos en /mnt/c); correr en WSL/CI.
+- `retencion_iva_pct`: CONFIRMADO por el usuario que SUMA al costo (correcto, es desembolso bruto). No cambiar.
+
 ## Pendiente importante (no hecho aún)
 - **Rotar `service_role` key + contraseña Postgres** (estaban en claro en `.env.local`/`scripts/apply.ts`).
-- Regenerar `packages/shared/src/database.types.ts` (`supabase gen types`) y tipar el cliente Supabase con `<Database>` (hoy todo es `any` casteado).
-- `xlsx@0.18.5` tiene CVEs sin fix en npm → migrar al CDN de SheetJS o exceljs.
-- Tests: solo App.test.tsx. Priorizar nómina y bulk-import.
-- Revisar regla de negocio de `retencion_iva_pct` (hoy SUMA al costo; ¿debería restar?).
+- Regenerar `packages/shared/src/database.types.ts` (`supabase gen types`, necesita acceso a la DB) y tipar el cliente Supabase con `<Database>` (hoy todo es `any` casteado).
 
 Relacionado: [[deep-tech-hr-migration]], [[deep-tech-env-constraints]].

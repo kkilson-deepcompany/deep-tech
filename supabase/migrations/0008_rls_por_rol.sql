@@ -338,6 +338,5 @@ CREATE TRIGGER products_costo_total
   FOR EACH ROW EXECUTE FUNCTION public.products_calc_costo_total();
 --> statement-breakpoint
 
--- NOTA: revisar la regla de negocio de `retencion_iva_pct`. Hoy SUMA al costo
--- (igual que arriba). Si una retención de IVA debe RESTAR el neto, cambia el
--- signo aquí y en apps/web/src/lib/domain.ts (calcularCostoTotal).
+-- NOTA: `retencion_iva_pct` SUMA al costo (igual que el IVA). Confirmado como
+-- correcto por el negocio (2026-06): el costo total refleja el desembolso bruto.
