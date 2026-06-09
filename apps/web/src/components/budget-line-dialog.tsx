@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useDialog } from '@/lib/dialog-service';
 
 type LineTextValues = {
   category: string;
@@ -50,6 +51,7 @@ interface BudgetLineDialogProps {
 
 export function BudgetLineDialog({ open, onOpenChange, budgetId, line }: BudgetLineDialogProps) {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const isEdit = line !== null;
   const {
     register,
@@ -176,8 +178,10 @@ export function BudgetLineDialog({ open, onOpenChange, budgetId, line }: BudgetL
                 type="button"
                 variant="destructive"
                 disabled={busy}
-                onClick={() => {
-                  if (window.confirm('¿Eliminar esta línea?')) remove.mutate();
+                onClick={async () => {
+                  if (await dialog.confirm({ description: '¿Eliminar esta línea?', tone: 'destructive' })) {
+                    remove.mutate();
+                  }
                 }}
               >
                 <Trash2 />

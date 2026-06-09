@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDialog } from '@/lib/dialog-service';
 
 interface MoveVars {
   id: string;
@@ -28,6 +29,7 @@ interface BulkMoveVars {
 
 export function CandidatosPage() {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const candidatosQuery = useQuery({ queryKey: ['candidatos'], queryFn: fetchCandidatos });
   const vacantesQuery = useQuery({ queryKey: ['vacantes'], queryFn: fetchVacantes });
 
@@ -111,9 +113,9 @@ export function CandidatosPage() {
     setDialogOpen(true);
   }
 
-  function handleRechazar() {
+  async function handleRechazar() {
     if (selected.size === 0) return;
-    if (window.confirm(`¿Rechazar ${selected.size} candidato(s)?`)) {
+    if (await dialog.confirm({ description: `¿Rechazar ${selected.size} candidato(s)?`, tone: 'destructive' })) {
       bulkMove.mutate({ ids: [...selected], estado: 'Rechazado' });
     }
   }

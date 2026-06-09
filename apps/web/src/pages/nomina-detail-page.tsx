@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDialog } from '@/lib/dialog-service';
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -27,6 +28,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 export function NominaDetailPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const navigate = useNavigate();
 
   const nominasQuery = useQuery({ queryKey: ['nominas'], queryFn: fetchNominas });
@@ -122,8 +124,15 @@ export function NominaDetailPage() {
           <Button
             variant="destructive"
             disabled={remove.isPending}
-            onClick={() => {
-              if (window.confirm('¿Eliminar esta nómina y sus registros?')) remove.mutate();
+            onClick={async () => {
+              if (
+                await dialog.confirm({
+                  description: '¿Eliminar esta nómina y sus registros?',
+                  tone: 'destructive',
+                })
+              ) {
+                remove.mutate();
+              }
             }}
           >
             <Trash2 />

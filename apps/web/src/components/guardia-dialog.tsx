@@ -21,6 +21,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useDialog } from '@/lib/dialog-service';
 
 type GuardiaTextValues = {
   tipo_servicio: string;
@@ -61,6 +62,7 @@ export function GuardiaDialog({
   fechaInicial = '',
 }: GuardiaDialogProps) {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const isEdit = guardia !== null;
   const {
     register,
@@ -207,7 +209,11 @@ export function GuardiaDialog({
                 variant="destructive"
                 disabled={busy}
                 onClick={() => {
-                  if (window.confirm('¿Eliminar este servicio?')) remove.mutate();
+                  void (async () => {
+                    if (await dialog.confirm({ description: '¿Eliminar este servicio?', tone: 'destructive' })) {
+                      remove.mutate();
+                    }
+                  })();
                 }}
               >
                 <Trash2 />

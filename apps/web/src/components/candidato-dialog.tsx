@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
+import { useDialog } from '@/lib/dialog-service';
 
 type CandidatoFormValues = {
   nombre: string;
@@ -58,6 +59,7 @@ interface CandidatoDialogProps {
 
 export function CandidatoDialog({ open, onOpenChange, candidato, vacantes }: CandidatoDialogProps) {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const isEdit = candidato !== null;
   const {
     register,
@@ -237,7 +239,11 @@ export function CandidatoDialog({ open, onOpenChange, candidato, vacantes }: Can
                 variant="destructive"
                 disabled={busy}
                 onClick={() => {
-                  if (window.confirm('¿Eliminar este candidato?')) remove.mutate();
+                  void (async () => {
+                    if (await dialog.confirm({ description: '¿Eliminar este candidato?', tone: 'destructive' })) {
+                      remove.mutate();
+                    }
+                  })();
                 }}
               >
                 <Trash2 />

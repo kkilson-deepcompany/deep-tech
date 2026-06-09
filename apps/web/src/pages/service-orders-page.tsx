@@ -54,6 +54,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { useDialog } from '@/lib/dialog-service';
 
 type Tab = 'en-curso' | 'completadas' | 'saldos';
 
@@ -101,6 +102,7 @@ function formatHoras(h: string | null | undefined): string {
 
 export function ServiceOrdersPage() {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const ordersQuery = useQuery({ queryKey: ['service_orders'], queryFn: fetchServiceOrders });
   const clientesQuery = useQuery({
     queryKey: ['service_clientes'],
@@ -407,9 +409,15 @@ export function ServiceOrdersPage() {
           orders={drafts}
           logoUrl={logoUrl}
           onOpen={openEdit}
-          onDelete={(o) => {
-            if (window.confirm(`¿Eliminar la orden ${o.order_number ?? 'borrador'}?`))
+          onDelete={async (o) => {
+            if (
+              await dialog.confirm({
+                description: `¿Eliminar la orden ${o.order_number ?? 'borrador'}?`,
+                tone: 'destructive',
+              })
+            ) {
               remove.mutate(o);
+            }
           }}
         />
       ) : tab === 'completadas' ? (
@@ -417,8 +425,15 @@ export function ServiceOrdersPage() {
           orders={completed}
           logoUrl={logoUrl}
           onOpen={openEdit}
-          onDelete={(o) => {
-            if (window.confirm(`¿Eliminar la orden ${o.order_number ?? ''}?`)) remove.mutate(o);
+          onDelete={async (o) => {
+            if (
+              await dialog.confirm({
+                description: `¿Eliminar la orden ${o.order_number ?? ''}?`,
+                tone: 'destructive',
+              })
+            ) {
+              remove.mutate(o);
+            }
           }}
           onEmail={(o) =>
             setEmailDialog({

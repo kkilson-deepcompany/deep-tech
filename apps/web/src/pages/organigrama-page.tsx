@@ -25,9 +25,11 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
+import { useDialog } from '@/lib/dialog-service';
 
 export function OrganigramaPage() {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const treesQuery = useQuery({ queryKey: ['org_trees'], queryFn: fetchOrgTrees });
   const trees: OrgTree[] = treesQuery.data ?? [];
 
@@ -117,14 +119,27 @@ export function OrganigramaPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  function handleAddTree() {
-    const name = window.prompt('Nombre de la empresa / organigrama:')?.trim();
+  async function handleAddTree() {
+    const name = (
+      await dialog.prompt({
+        title: 'Nuevo organigrama',
+        label: 'Nombre de la empresa / organigrama',
+        placeholder: 'Ej: Deepcompany',
+        required: true,
+        confirmText: 'Crear',
+      })
+    )?.trim();
     if (name) createTree.mutate(name);
   }
 
-  function handleDeleteTree() {
+  async function handleDeleteTree() {
     if (!activeTree) return;
-    if (window.confirm(`¿Eliminar el organigrama «${activeTree.name}» por completo?`)) {
+    if (
+      await dialog.confirm({
+        description: `¿Eliminar el organigrama «${activeTree.name}» por completo?`,
+        tone: 'destructive',
+      })
+    ) {
       removeTree.mutate();
     }
   }

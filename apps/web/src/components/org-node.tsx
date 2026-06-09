@@ -29,6 +29,7 @@ export function OrgNode({
   onDelete,
 }: OrgNodeProps) {
   const navigate = useNavigate();
+  const dialog = useDialog();
   const isVacante = node.nombre === VACANTE_LABEL;
   const isDept = node.isDept || Boolean(node.departamento);
   const title = node.cargo || node.departamento || 'Sin título';
@@ -38,7 +39,10 @@ export function OrgNode({
   const childDept = node.isDept ? node.departamento : departamento;
 
   async function habilitarVacante() {
-    if (!window.confirm(`¿Habilitar la vacante para el cargo: ${title}?`)) return;
+    const ok = await dialog.confirm({
+      description: `¿Habilitar la vacante para el cargo: ${title}?`,
+    });
+    if (!ok) return;
     const { error } = await supabase.from('vacantes').insert({
       titulo: title,
       estado: 'Abierta',

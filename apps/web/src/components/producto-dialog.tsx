@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
+import { useDialog } from '@/lib/dialog-service';
 
 type ProductFormValues = {
   sku: string;
@@ -118,6 +119,7 @@ interface ProductoDialogProps {
 
 export function ProductoDialog({ open, onOpenChange, producto }: ProductoDialogProps) {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const isEdit = producto !== null;
   const [subiendoImagen, setSubiendoImagen] = useState(false);
   const {
@@ -403,7 +405,11 @@ export function ProductoDialog({ open, onOpenChange, producto }: ProductoDialogP
                 variant="destructive"
                 disabled={busy}
                 onClick={() => {
-                  if (window.confirm('¿Eliminar este producto?')) remove.mutate();
+                  void (async () => {
+                    if (await dialog.confirm({ description: '¿Eliminar este producto?', tone: 'destructive' })) {
+                      remove.mutate();
+                    }
+                  })();
                 }}
               >
                 <Trash2 />

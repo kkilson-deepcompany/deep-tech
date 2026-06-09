@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { useDialog } from '@/lib/dialog-service';
 
 const MAX_LOGO_BYTES = 500 * 1024; // 500 KB
 
@@ -58,6 +59,7 @@ function extractStoragePath(url: string | null): string | null {
 
 export function ConfiguracionPage() {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const brandingQuery = useQuery({
     queryKey: ['empresa-branding'],
     queryFn: fetchEmpresasBranding,
@@ -185,13 +187,15 @@ export function ConfiguracionPage() {
               }
               onRemoveLogo={() => quitarLogo.mutate(b)}
               onColorChange={(color) => actualizarColor.mutate({ empresa: b.nombre, color })}
-              onDeleteEmpresa={() => {
+              onDeleteEmpresa={async () => {
                 if (
-                  window.confirm(
-                    `¿Quitar "${b.nombre}" del catálogo de marca? (No afecta a los registros que ya usan ese nombre.)`,
-                  )
-                )
+                  await dialog.confirm({
+                    description: `¿Quitar "${b.nombre}" del catálogo de marca? (No afecta a los registros que ya usan ese nombre.)`,
+                    tone: 'destructive',
+                  })
+                ) {
                   eliminarEmpresa.mutate(b);
+                }
               }}
             />
           ))}
