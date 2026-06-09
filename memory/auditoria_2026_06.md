@@ -34,10 +34,19 @@ Auditoría completa (código, seguridad, arquitectura, finanzas) hecha el 2026-0
 - **database.types.ts regenerado** real (32 tipos) en packages/shared. Cliente AÚN sin `<Database>` (flip pendiente, necesita tsc para arreglar casts).
 - Roles corregidos: `k.kilson@deepcompany.com` promovido a admin_rrhh; 3 cuentas `_diag_*@local.test` eliminadas. Quedan 2 admins (k.kilson, rhernandez).
 
+## BUILD ARREGLADO Y VERIFICADO (commit f3cfe82)
+- IMPORTANTE: `bun install` SÍ funciona en bun nativo de Windows (git-bash, /c/...), NO en WSL/mnt. Eso desbloqueó tsc/vitest/vite. El build venía ROTO en silencio (tsc nunca corría).
+- Arreglados ~22 errores de tipo pre-existentes (noUncheckedIndexedAccess) + bug de import de useDialog en org-node + código muerto.
+- Bug REAL hallado por test: `parseIntList('')` daba `[0]` (recordatorio espurio); corregido.
+- Verificado TODO: `bun x tsc -b apps/web/tsconfig.json` verde, 24/24 tests, `bun run build` verde, `bun run lint` 0 errores. manualChunks: index 1003KB→667KB.
+- bun.lock actualizado (incluye xlsx CDN 0.20.3).
+
+## Flip a createClient<Database>: MEDIDO = 55 errores
+- Probado y revertido. Los Row generados no calzan con las interfaces de dominio (form_data Json vs interfaces tipadas). Hacerlo bien = refactor deliberado que ALINEE domain.ts/service-order types con los generados, NO 55 casts `as unknown as`. Tarea propia futura.
+
 ## Pendiente importante (no hecho aún)
 - **REVOCAR el PAT `sbp_...`** usado en esta sesión (Account → Tokens) y **rotar `service_role`** (quedó en el chat) + contraseña Postgres.
-- `bun install` para actualizar bun.lock con el nuevo xlsx (CDN); redeploy edge functions + `supabase secrets set ALLOWED_ORIGIN=`.
-- Flip del cliente a `createClient<Database>` (necesita tsc corriendo para ajustar casts de queries.ts).
-- Correr `bun run build` + `bun run test` en WSL para validar todo.
+- Redeploy edge functions + `supabase secrets set ALLOWED_ORIGIN=`.
+- Refactor deliberado para flipar el cliente a `<Database>` (ver arriba).
 
 Relacionado: [[deep-tech-hr-migration]], [[deep-tech-env-constraints]].
