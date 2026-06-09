@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      becas: {
+        Row: {
+          colaborador_id: string | null
+          created_at: string
+          estado: string
+          gasto_id: string | null
+          id: string
+          institucion: string
+          monto_usd: number
+          nota: string | null
+          pct_cubierto: number
+          periodo: string | null
+          programa: string | null
+        }
+        Insert: {
+          colaborador_id?: string | null
+          created_at?: string
+          estado?: string
+          gasto_id?: string | null
+          id?: string
+          institucion: string
+          monto_usd?: number
+          nota?: string | null
+          pct_cubierto?: number
+          periodo?: string | null
+          programa?: string | null
+        }
+        Update: {
+          colaborador_id?: string | null
+          created_at?: string
+          estado?: string
+          gasto_id?: string | null
+          id?: string
+          institucion?: string
+          monto_usd?: number
+          nota?: string | null
+          pct_cubierto?: number
+          periodo?: string | null
+          programa?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "becas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "becas_gasto_id_fkey"
+            columns: ["gasto_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_lines: {
         Row: {
           budget_id: string
@@ -182,6 +239,66 @@ export type Database = {
           nombre?: string
         }
         Relationships: []
+      }
+      colaborador_seguros: {
+        Row: {
+          colaborador_id: string
+          cotizacion: Json
+          created_at: string
+          estado: string
+          fecha_nacimiento: string | null
+          genero: string | null
+          id: string
+          nota: string | null
+          plan_id: string | null
+          prima_usd: number | null
+          vigencia_fin: string | null
+          vigencia_inicio: string | null
+        }
+        Insert: {
+          colaborador_id: string
+          cotizacion?: Json
+          created_at?: string
+          estado?: string
+          fecha_nacimiento?: string | null
+          genero?: string | null
+          id?: string
+          nota?: string | null
+          plan_id?: string | null
+          prima_usd?: number | null
+          vigencia_fin?: string | null
+          vigencia_inicio?: string | null
+        }
+        Update: {
+          colaborador_id?: string
+          cotizacion?: Json
+          created_at?: string
+          estado?: string
+          fecha_nacimiento?: string | null
+          genero?: string | null
+          id?: string
+          nota?: string | null
+          plan_id?: string | null
+          prima_usd?: number | null
+          vigencia_fin?: string | null
+          vigencia_inicio?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "colaborador_seguros_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "colaborador_seguros_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "seguro_planes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       colaboradores: {
         Row: {
@@ -715,6 +832,60 @@ export type Database = {
             columns: ["nomina_id"]
             isOneToOne: false
             referencedRelation: "nominas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formaciones: {
+        Row: {
+          colaborador_id: string | null
+          costo_usd: number
+          created_at: string
+          estado: string
+          fecha: string | null
+          gasto_id: string | null
+          id: string
+          nombre: string
+          nota: string | null
+          proveedor: string | null
+        }
+        Insert: {
+          colaborador_id?: string | null
+          costo_usd?: number
+          created_at?: string
+          estado?: string
+          fecha?: string | null
+          gasto_id?: string | null
+          id?: string
+          nombre: string
+          nota?: string | null
+          proveedor?: string | null
+        }
+        Update: {
+          colaborador_id?: string | null
+          costo_usd?: number
+          created_at?: string
+          estado?: string
+          fecha?: string | null
+          gasto_id?: string | null
+          id?: string
+          nombre?: string
+          nota?: string | null
+          proveedor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formaciones_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formaciones_gasto_id_fkey"
+            columns: ["gasto_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
             referencedColumns: ["id"]
           },
         ]
@@ -1309,6 +1480,39 @@ export type Database = {
           picture?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      seguro_planes: {
+        Row: {
+          activo: boolean
+          aseguradora: string
+          clave: string
+          cobertura: string | null
+          created_at: string
+          id: string
+          nombre: string
+          tipo: string
+        }
+        Insert: {
+          activo?: boolean
+          aseguradora: string
+          clave: string
+          cobertura?: string | null
+          created_at?: string
+          id?: string
+          nombre: string
+          tipo: string
+        }
+        Update: {
+          activo?: boolean
+          aseguradora?: string
+          clave?: string
+          cobertura?: string | null
+          created_at?: string
+          id?: string
+          nombre?: string
+          tipo?: string
         }
         Relationships: []
       }
