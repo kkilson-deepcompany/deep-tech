@@ -38,7 +38,7 @@ export async function exportOrganigramaPdf(tree: OrgNodeData, empresa: string): 
       leafCursor += 1;
     } else {
       const xs = children.map((c) => place(c, depth + 1));
-      cx = (xs[0] + xs[xs.length - 1]) / 2;
+      cx = ((xs[0] ?? 0) + (xs[xs.length - 1] ?? 0)) / 2;
     }
     pos.set(node.id, { cx, y: depth * (NODE_H + V_GAP), depth });
     return cx;
@@ -90,8 +90,9 @@ export async function exportOrganigramaPdf(tree: OrgNodeData, empresa: string): 
     const p = pos.get(node.id)!;
     const x = ox + p.cx - NODE_W / 2;
     const y = oy + p.y;
-    const fill = p.depth === 0 ? [232, 108, 63] : p.depth === 1 ? [43, 61, 79] : [163, 184, 194];
-    const ink = p.depth <= 1 ? [255, 255, 255] : [43, 61, 79];
+    const fill: [number, number, number] =
+      p.depth === 0 ? [232, 108, 63] : p.depth === 1 ? [43, 61, 79] : [163, 184, 194];
+    const ink: [number, number, number] = p.depth <= 1 ? [255, 255, 255] : [43, 61, 79];
 
     doc.setFillColor(fill[0], fill[1], fill[2]);
     doc.roundedRect(x, y, NODE_W, NODE_H, 2, 2, 'F');

@@ -40,7 +40,7 @@ export function hhmm(value: string): string {
 
 /** Convierte 'YYYY-MM-DD' a Date local (sin shifts de zona horaria). */
 export function parseYmd(value: string): Date {
-  const [y, m, d] = value.split('-').map(Number);
+  const [y = 0, m = 1, d = 1] = value.split('-').map(Number);
   return new Date(y, m - 1, d);
 }
 
@@ -56,8 +56,8 @@ export function generateSlots(config: ReservaConfig): Slot[] {
   const slots: Slot[] = [];
   const start = parseYmd(config.fecha_inicio);
   const end = parseYmd(config.fecha_fin);
-  const [sh, sm] = hhmm(config.hora_inicio).split(':').map(Number);
-  const [eh, em] = hhmm(config.hora_fin).split(':').map(Number);
+  const [sh = 0, sm = 0] = hhmm(config.hora_inicio).split(':').map(Number);
+  const [eh = 0, em = 0] = hhmm(config.hora_fin).split(':').map(Number);
   const startMin = sh * 60 + sm;
   const endMin = eh * 60 + em;
   const allowed = new Set(config.dias);
@@ -66,7 +66,8 @@ export function generateSlots(config: ReservaConfig): Slot[] {
 
   for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     if (d < today) continue; // no mostrar días pasados
-    if (!allowed.has(WEEKDAY_TO_DIA[d.getDay()])) continue;
+    const dia = WEEKDAY_TO_DIA[d.getDay()];
+    if (!dia || !allowed.has(dia)) continue;
     const fecha = ymd(d);
     for (let t = startMin; t + BLOQUE_MIN <= endMin; t += CADENCIA) {
       const hh = String(Math.floor(t / 60)).padStart(2, '0');
@@ -106,7 +107,7 @@ export function formatFechaLarga(fecha: string): string {
 
 /** "09:40 AM" */
 export function formatHora12(hora: string): string {
-  const [h, m] = hhmm(hora).split(':').map(Number);
+  const [h = 0, m = 0] = hhmm(hora).split(':').map(Number);
   const d = new Date();
   d.setHours(h, m, 0, 0);
   return format(d, 'hh:mm a');

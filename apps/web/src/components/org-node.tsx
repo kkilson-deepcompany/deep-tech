@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Trash2, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { useDialog } from '@/lib/dialog-service';
 import { VACANTE_LABEL, type OrgNodeData } from '@/lib/organigrama';
 
 interface OrgNodeProps {

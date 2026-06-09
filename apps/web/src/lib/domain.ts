@@ -631,7 +631,9 @@ export function calcularCostoTotal(campos: CostoCampo[], valores: Record<string,
 export function parseIntList(value: string): number[] {
   return value
     .split(',')
-    .map((s) => Number(s.trim()))
+    .map((s) => s.trim())
+    .filter((s) => s !== '')
+    .map(Number)
     .filter((n) => Number.isInteger(n) && n >= 0);
 }
 

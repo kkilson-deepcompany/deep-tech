@@ -130,14 +130,6 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     return () => __setGlobalDialogApi(null);
   }, [api]);
 
-  function close(result: { confirm: boolean; alert: true; prompt: string | null }) {
-    if (!pending) return;
-    if (pending.kind === 'confirm') pending.resolve(result.confirm);
-    else if (pending.kind === 'alert') pending.resolve();
-    else pending.resolve(result.prompt);
-    setPending(null);
-  }
-
   function handleOpenChange(open: boolean) {
     if (open || !pending) return;
     if (pending.kind === 'confirm') pending.resolve(false);
@@ -275,7 +267,6 @@ export function installNativeDialogShim() {
     if (globalApi) {
       void globalApi.alert({ description });
     } else {
-      // eslint-disable-next-line no-console
       console.warn('[dialog-shim] alert llamado antes de montar DialogProvider:', description);
     }
   };
@@ -285,7 +276,6 @@ export function installNativeDialogShim() {
     if (globalApi) {
       void globalApi.confirm({ description });
     }
-    // eslint-disable-next-line no-console
     console.warn(
       '[dialog-shim] window.confirm es síncrono y fue interceptado. Usa `useDialog().confirm()` con await.',
     );
@@ -298,7 +288,6 @@ export function installNativeDialogShim() {
     if (globalApi) {
       void globalApi.prompt({ description, defaultValue: dv });
     }
-    // eslint-disable-next-line no-console
     console.warn(
       '[dialog-shim] window.prompt es síncrono y fue interceptado. Usa `useDialog().prompt()` con await.',
     );

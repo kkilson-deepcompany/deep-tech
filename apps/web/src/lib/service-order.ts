@@ -195,8 +195,8 @@ export interface ServiceOrder {
  */
 export function calcHorasServicio(horaInicio: string, horaFin: string): number | null {
   if (!horaInicio || !horaFin) return null;
-  const [hi, mi] = horaInicio.split(':').map(Number);
-  const [hf, mf] = horaFin.split(':').map(Number);
+  const [hi = NaN, mi = NaN] = horaInicio.split(':').map(Number);
+  const [hf = NaN, mf = NaN] = horaFin.split(':').map(Number);
   if ([hi, mi, hf, mf].some((n) => Number.isNaN(n))) return null;
   const startMin = hi * 60 + mi;
   let endMin = hf * 60 + mf;

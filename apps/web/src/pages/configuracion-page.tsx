@@ -54,7 +54,7 @@ async function uploadLogo(empresa: string, file: File): Promise<string> {
 function extractStoragePath(url: string | null): string | null {
   if (!url) return null;
   const m = url.match(/\/branding\/([^?]+)/);
-  return m ? m[1] : null;
+  return m?.[1] ?? null;
 }
 
 export function ConfiguracionPage() {

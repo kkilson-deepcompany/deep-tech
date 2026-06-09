@@ -46,7 +46,7 @@ export function OrganigramaPage() {
     if (trees.length === 0) {
       setActiveTreeId(null);
     } else if (!activeTreeId || !trees.some((t) => t.id === activeTreeId)) {
-      setActiveTreeId(trees[0].id);
+      setActiveTreeId(trees[0]?.id ?? null);
     }
   }, [trees, activeTreeId]);
 
