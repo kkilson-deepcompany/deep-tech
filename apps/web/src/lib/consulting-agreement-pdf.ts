@@ -555,9 +555,12 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
     });
   }
 
+  // "[Signature Page Follows]" cierra el cuerpo al final de la última página
+  // (centrado), antes de saltar a la página de firmas independiente.
+  centerLine('[Signature Page Follows]', { gap: LH });
+
   // ── Página de firmas (independiente) ────────────────────────────────────────
   newPage();
-  para('[Signature Page Follows]');
   para(
     'The parties have executed this Agreement on the respective dates set forth below, to be effective as of the Effective Date first above written.',
     { justify: true, gapAfter: 18 },
