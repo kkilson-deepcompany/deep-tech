@@ -11,6 +11,8 @@ export interface ConsultingAgreementData {
   months: number;
   /** Beneficios adicionales a anexar en el Exhibit B (opcional). */
   beneficiosExtra?: string | null;
+  /** Rótulo del bloque adicional del Exhibit B ('Additional benefits' u 'Observations'). */
+  beneficiosLabel?: string | null;
   /** Cédula/identificación (opcional, informativo). */
   cedula?: string | null;
 }
@@ -594,7 +596,8 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
     { justify: true },
   );
   if (data.beneficiosExtra && data.beneficiosExtra.trim()) {
-    para(data.beneficiosExtra.trim(), { boldLead: 'Additional benefits:', justify: true });
+    const label = (data.beneficiosLabel?.trim() || 'Additional benefits').replace(/:+$/, '');
+    para(data.beneficiosExtra.trim(), { boldLead: `${label}:`, justify: true });
   }
 
   // ── EXHIBIT B-1 ─────────────────────────────────────────────────────────────

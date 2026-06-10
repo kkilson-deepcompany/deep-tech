@@ -251,6 +251,7 @@ export interface Contrato {
   plantilla: ContratoPlantilla;
   duracion_meses: number | null;
   beneficios_exhibit_b: string | null;
+  exhibit_b_label: string;
   documento_url: string | null;
   notas: string | null;
   created_at: string;

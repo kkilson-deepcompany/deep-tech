@@ -41,6 +41,7 @@ type ContratoFormValues = {
   plantilla: string;
   duracion_meses: string;
   beneficios_exhibit_b: string;
+  exhibit_b_label: string;
   notas: string;
 };
 
@@ -63,6 +64,7 @@ function toFormValues(c: Contrato | null): ContratoFormValues {
     plantilla: c?.plantilla ?? 'Tiempo Determinado',
     duracion_meses: c?.duracion_meses != null ? String(c.duracion_meses) : '3',
     beneficios_exhibit_b: c?.beneficios_exhibit_b ?? '',
+    exhibit_b_label: c?.exhibit_b_label ?? 'Additional benefits',
     notas: c?.notas ?? '',
   };
 }
@@ -148,6 +150,7 @@ export function ContratoDialog({
           monthlyUsd: Number(contrato.salario) || 0,
           months: contrato.duracion_meses ?? 3,
           beneficiosExtra: contrato.beneficios_exhibit_b,
+          beneficiosLabel: contrato.exhibit_b_label,
           cedula,
         });
       } else {
@@ -247,15 +250,22 @@ export function ContratoDialog({
             />
           </FormField>
 
+          <FormField label="Rótulo del bloque (Exhibit B)" htmlFor="exhibit_b_label">
+            <Select id="exhibit_b_label" {...register('exhibit_b_label')}>
+              <option value="Additional benefits">Additional benefits</option>
+              <option value="Observations">Observations</option>
+            </Select>
+          </FormField>
+
           <FormField
-            label="Beneficios adicionales (Exhibit B · Consulting Agreement)"
+            label="Texto del bloque (Exhibit B · Consulting Agreement)"
             htmlFor="beneficios_exhibit_b"
             className="sm:col-span-2"
           >
             <Textarea
               id="beneficios_exhibit_b"
               rows={2}
-              placeholder="Opcional. Se anexan al Exhibit B del Consulting Agreement (seguro, bonos, etc.)."
+              placeholder="Opcional. Se anexa al Exhibit B bajo el rótulo elegido (Additional benefits u Observations)."
               {...register('beneficios_exhibit_b')}
             />
           </FormField>

@@ -489,6 +489,7 @@ export type Database = {
           duracion_meses: number | null
           empresa: string
           estado: Database["public"]["Enums"]["contrato_estado"]
+          exhibit_b_label: string
           fecha_fin: string
           fecha_inicio: string
           fin_periodo_prueba: string | null
@@ -512,6 +513,7 @@ export type Database = {
           duracion_meses?: number | null
           empresa: string
           estado?: Database["public"]["Enums"]["contrato_estado"]
+          exhibit_b_label?: string
           fecha_fin: string
           fecha_inicio: string
           fin_periodo_prueba?: string | null
@@ -535,6 +537,7 @@ export type Database = {
           duracion_meses?: number | null
           empresa?: string
           estado?: Database["public"]["Enums"]["contrato_estado"]
+          exhibit_b_label?: string
           fecha_fin?: string
           fecha_inicio?: string
           fin_periodo_prueba?: string | null

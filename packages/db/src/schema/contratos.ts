@@ -26,6 +26,7 @@ export const contratos = pgTable('contratos', {
   // Consulting Agreement (plantilla US): vigencia y beneficios del Exhibit B.
   duracionMeses: smallint('duracion_meses'),
   beneficiosExhibitB: text('beneficios_exhibit_b'),
+  exhibitBLabel: text('exhibit_b_label').notNull().default('Additional benefits'),
   documentoUrl: text('documento_url'),
   notas: text('notas'),
   createdAt: createdAt(),
