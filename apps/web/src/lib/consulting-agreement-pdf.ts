@@ -521,22 +521,13 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   // primera línea, sobre la sangría base de los párrafos justificados.
   // Regla: cada punto y aparte (sección o sub-cláusula) lleva dos espacios.
   for (const s of SECTIONS) {
-    const hasSubs = (s.subs?.length ?? 0) > 0;
-    if (hasSubs) {
-      // Estructura como la cláusula 14: encabezado numerado en su propia línea
-      // (con la sangría especial de primera línea), luego la frase introductoria
-      // como párrafo aparte (si la hay) y las sub-cláusulas (a),(b)…
-      para('', {
-        boldLead: `${s.n}. ${s.title}`,
-        underlineLead: true,
-        firstIndent: FIRST_INDENT,
-        gapAfter: TWO,
-      });
-      if (s.intro) para(s.intro, { justify: true, gapAfter: TWO });
-    } else if (s.intro) {
-      // Secciones simples (sin sub-cláusulas): encabezado inline con el cuerpo.
+    if (s.intro) {
+      // Con frase introductoria (10, 14 y las secciones simples): encabezado
+      // inline con el cuerpo, en un mismo párrafo justificado.
       para(s.intro, { boldLead: `${s.n}. ${s.title}`, underlineLead: true, justify: true, gapAfter: TWO });
     } else {
+      // Sin frase introductoria (5, 6, 13, 18): encabezado solo, con la sangría
+      // especial de primera línea.
       para('', {
         boldLead: `${s.n}. ${s.title}`,
         underlineLead: true,
@@ -624,6 +615,7 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   );
   drawRow(['Title', 'Date', 'Identifying Number or Brief Description'], true, true);
   drawRow(['', '', ''], false, true);
+  y += LH * 6; // ~6 líneas en blanco tras la tabla
   para('Except as indicated above on this Exhibit, Consultant has no inventions, improvements or original works to disclose pursuant to Section 6(a) of this Agreement.');
   para('___ Additional sheets attached', { gapAfter: 14 });
   para('Signature of Consultant: ____________________________');
@@ -643,8 +635,9 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   );
   para(
     'Consultant further agrees that for twelve (12) months immediately following the termination of Consultant\'s Relationship with the Company, Consultant shall not either directly or indirectly solicit any of the Company\'s employees or consultants to terminate their relationship with the Company, or attempt to solicit employees or consultants of the Company, either for Consultant or for any other person or entity.',
-    { justify: true, gapAfter: 14 },
+    { justify: true },
   );
+  y += LH * 6; // ~6 líneas en blanco antes de la firma
   para('Signature of Consultant: ____________________________');
   para(`Print Name of Consultant: ${data.consultantName}`);
   para('Date: ____________');
@@ -661,7 +654,7 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   newPage();
   exhibitHeading('EXHIBIT F', 'LIST OF COMPANIES EXCLUDED UNDER SECTION 16');
   y += LH * 14; // 15 líneas en blanco (con la del heading) antes del bloque
-  para('_X_ No conflicts          ___ Additional Sheets Attached');
+  para('_X_ No conflicts          ___ Additional Sheets Attached', { gapAfter: TWO * 2 });
   para('Signature of Consultant: ____________________________');
   para(`Print Name of Consultant: ${data.consultantName}`);
   para('Date: ____________');
@@ -670,7 +663,7 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   newPage();
   exhibitHeading('EXHIBIT G', 'RESTRICTIVE AGREEMENTS UNDER SECTION 17');
   y += LH * 14; // 15 líneas en blanco antes del bloque
-  para('_X_ None          ___ Additional Sheets Attached');
+  para('_X_ None          ___ Additional Sheets Attached', { gapAfter: TWO * 2 });
   para('Signature of Consultant: ____________________________');
   para(`Print Name of Consultant: ${data.consultantName}`);
   para('Date: ____________');
