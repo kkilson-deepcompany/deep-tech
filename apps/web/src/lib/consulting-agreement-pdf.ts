@@ -497,18 +497,23 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
     centerLine(title, { bold: true, gap: FS * 1.8 });
   }
 
+  // "Dos espacios" = dos líneas en blanco entre elementos (≈ 2× interlínea).
+  const TWO = LH * 2;
+
   // ── Portada (centrada) ──────────────────────────────────────────────────────
-  centerLine('DEEPCOMPANY LLC', { bold: true, gap: FS * 1.8 });
-  centerLine('CONSULTING AGREEMENT', { bold: true, underline: true, gap: FS * 2.2 });
-  centerLine(`Consultant Name: ${data.consultantName} ("Consultant")`, { gap: FS * 1.6 });
-  centerLine(`Effective Date: ${effLabel}`, { gap: FS * 2.0 });
+  centerLine('DEEPCOMPANY LLC', { bold: true, gap: LH + TWO }); // espacio 1-2
+  centerLine('CONSULTING AGREEMENT', { bold: true, underline: true, gap: LH * 1.4 }); // sin espacio 2-3
+  centerLine(`Consultant Name: ${data.consultantName} ("Consultant")`, { gap: LH + TWO }); // espacio 3-4
+  centerLine(`Effective Date: ${effLabel}`, { gap: LH + TWO }); // espacio 4-5
 
   para(
     'As a condition of becoming retained (or Consultant\'s consulting relationship being continued) by Deepcompany LLC, a Delaware corporation registered under File Number 7091553, SR 20187036768, or any of its current or future subsidiaries, affiliates, successors or assigns (collectively, the "Company"), and in consideration of Consultant\'s consulting relationship with the Company and receipt of the compensation now and hereafter paid by the Company, Consultant hereby agrees to the following:',
-    { justify: true },
+    { justify: true, gapAfter: TWO }, // espacio 5-6 (antes de la sección 1)
   );
 
   // ── Secciones 1-18 ──────────────────────────────────────────────────────────
+  // Las sub-cláusulas (a),(b)… reciben una SEGUNDA sangría especial (doble) en su
+  // primera línea, sobre la sangría base de los párrafos justificados.
   for (const s of SECTIONS) {
     if (s.intro) {
       para(s.intro, { boldLead: `${s.n}. ${s.title}`, underlineLead: true, justify: true });
@@ -518,7 +523,7 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
     (s.subs ?? []).forEach((sub, idx) => {
       const marker = `(${String.fromCharCode(97 + idx)})`;
       para(sub.text, {
-        indent: 26,
+        firstIndent: FIRST_INDENT * 2,
         boldLead: `${marker} ${sub.title ?? ''}`.trim(),
         underlineLead: true,
         justify: true,
