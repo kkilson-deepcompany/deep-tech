@@ -493,10 +493,11 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
 
   // Heading de exhibit: "EXHIBIT X" (negrita+subrayado) + subtítulo(s) (negrita).
   function exhibitHeading(code: string, title: string | string[]) {
-    centerLine(code, { bold: true, underline: true, gap: FS * 1.7 });
+    centerLine(code, { bold: true, underline: true, gap: FS * 1.6 });
     const lines = Array.isArray(title) ? title : [title];
+    // Tras el último subtítulo, una línea en blanco antes del cuerpo.
     lines.forEach((ln, i) =>
-      centerLine(ln, { bold: true, gap: i === lines.length - 1 ? FS * 1.8 : FS * 1.3 }),
+      centerLine(ln, { bold: true, gap: i === lines.length - 1 ? LH * 2 : LH * 1.2 }),
     );
   }
 
@@ -659,8 +660,8 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   // ── EXHIBIT F ───────────────────────────────────────────────────────────────
   newPage();
   exhibitHeading('EXHIBIT F', 'LIST OF COMPANIES EXCLUDED UNDER SECTION 16');
+  y += LH * 14; // 15 líneas en blanco (con la del heading) antes del bloque
   para('_X_ No conflicts          ___ Additional Sheets Attached');
-  y = Math.max(y, bodyBottom - LH * 4); // firma cerca del pie (zona en blanco)
   para('Signature of Consultant: ____________________________');
   para(`Print Name of Consultant: ${data.consultantName}`);
   para('Date: ____________');
@@ -668,8 +669,8 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   // ── EXHIBIT G ───────────────────────────────────────────────────────────────
   newPage();
   exhibitHeading('EXHIBIT G', 'RESTRICTIVE AGREEMENTS UNDER SECTION 17');
+  y += LH * 14; // 15 líneas en blanco antes del bloque
   para('_X_ None          ___ Additional Sheets Attached');
-  y = Math.max(y, bodyBottom - LH * 4); // firma cerca del pie (zona en blanco)
   para('Signature of Consultant: ____________________________');
   para(`Print Name of Consultant: ${data.consultantName}`);
   para('Date: ____________');
