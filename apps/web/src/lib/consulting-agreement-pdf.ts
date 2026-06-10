@@ -520,7 +520,15 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   // primera línea, sobre la sangría base de los párrafos justificados.
   // Regla: cada punto y aparte (sección o sub-cláusula) lleva dos espacios.
   for (const s of SECTIONS) {
-    if (s.intro) {
+    const hasSubs = (s.subs?.length ?? 0) > 0;
+    if (hasSubs) {
+      // Estructura como la cláusula 14: encabezado numerado en su propia línea,
+      // luego (si hay) la frase introductoria como párrafo aparte, y las
+      // sub-cláusulas (a),(b)…
+      para('', { boldLead: `${s.n}. ${s.title}`, underlineLead: true, gapAfter: TWO });
+      if (s.intro) para(s.intro, { justify: true, gapAfter: TWO });
+    } else if (s.intro) {
+      // Secciones simples (sin sub-cláusulas): encabezado inline con el cuerpo.
       para(s.intro, { boldLead: `${s.n}. ${s.title}`, underlineLead: true, justify: true, gapAfter: TWO });
     } else {
       para('', { boldLead: `${s.n}. ${s.title}`, underlineLead: true, gapAfter: TWO });
