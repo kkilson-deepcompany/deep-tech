@@ -334,7 +334,7 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   const bodyBottom = pageH - 56;
   const maxW = pageW - mX * 2;
   const FS = 12; // Times New Roman 12
-  const LH = FS * 1.35;
+  const LH = FS * 1.5; // interlineado 1.5
   let y = bodyTop;
 
   const eff = parseYmd(data.effectiveDate);
@@ -497,8 +497,9 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
     centerLine(title, { bold: true, gap: FS * 1.8 });
   }
 
-  // "Dos espacios" = dos líneas en blanco entre elementos (≈ 2× interlínea).
-  const TWO = LH * 2;
+  // Con interlineado 1.5, una línea de separación entre párrafos basta para
+  // marcar el "punto y aparte" sin que se vea excesivo.
+  const TWO = LH;
 
   // ── Portada (centrada) ──────────────────────────────────────────────────────
   centerLine('DEEPCOMPANY LLC', { bold: true, gap: LH + TWO }); // espacio 1-2
