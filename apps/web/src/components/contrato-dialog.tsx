@@ -39,6 +39,8 @@ type ContratoFormValues = {
   dia_pago: string;
   estado: string;
   plantilla: string;
+  duracion_meses: string;
+  beneficios_exhibit_b: string;
   notas: string;
 };
 
@@ -59,6 +61,8 @@ function toFormValues(c: Contrato | null): ContratoFormValues {
     dia_pago: c?.dia_pago ?? '30',
     estado: c?.estado ?? 'En Prueba',
     plantilla: c?.plantilla ?? 'Tiempo Determinado',
+    duracion_meses: c?.duracion_meses != null ? String(c.duracion_meses) : '3',
+    beneficios_exhibit_b: c?.beneficios_exhibit_b ?? '',
     notas: c?.notas ?? '',
   };
 }
@@ -135,7 +139,20 @@ export function ContratoDialog({
     const trabajador = colab?.nombre ?? cand?.nombre ?? '__________________';
     const cedula = colab?.cedula ?? cand?.cedula ?? null;
     try {
-      await generarContratoPdf({ contrato, trabajador, cedula });
+      if (contrato.plantilla === 'Deepcompany LLC (US)') {
+        const { generarConsultingAgreementPdf } = await import('@/lib/consulting-agreement-pdf');
+        await generarConsultingAgreementPdf({
+          consultantName: trabajador,
+          cargo: contrato.cargo,
+          effectiveDate: contrato.fecha_inicio,
+          monthlyUsd: Number(contrato.salario) || 0,
+          months: contrato.duracion_meses ?? 3,
+          beneficiosExtra: contrato.beneficios_exhibit_b,
+          cedula,
+        });
+      } else {
+        await generarContratoPdf({ contrato, trabajador, cedula });
+      }
     } catch {
       toast.error('No se pudo generar el PDF del contrato.');
     }
@@ -214,6 +231,33 @@ export function ContratoDialog({
                 </option>
               ))}
             </Select>
+          </FormField>
+
+          <FormField
+            label="Vigencia (meses)"
+            htmlFor="duracion_meses"
+            error={errors.duracion_meses?.message}
+          >
+            <Input
+              id="duracion_meses"
+              type="number"
+              min="1"
+              step="1"
+              {...register('duracion_meses')}
+            />
+          </FormField>
+
+          <FormField
+            label="Beneficios adicionales (Exhibit B · Consulting Agreement)"
+            htmlFor="beneficios_exhibit_b"
+            className="sm:col-span-2"
+          >
+            <Textarea
+              id="beneficios_exhibit_b"
+              rows={2}
+              placeholder="Opcional. Se anexan al Exhibit B del Consulting Agreement (seguro, bonos, etc.)."
+              {...register('beneficios_exhibit_b')}
+            />
           </FormField>
 
           <FormField label="Estado" htmlFor="estado">

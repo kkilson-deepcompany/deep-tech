@@ -478,6 +478,7 @@ export type Database = {
       }
       contratos: {
         Row: {
+          beneficios_exhibit_b: string | null
           candidato_id: string | null
           cargo: string
           colaborador_id: string | null
@@ -485,6 +486,7 @@ export type Database = {
           departamento: string | null
           dia_pago: string
           documento_url: string | null
+          duracion_meses: number | null
           empresa: string
           estado: Database["public"]["Enums"]["contrato_estado"]
           fecha_fin: string
@@ -499,6 +501,7 @@ export type Database = {
           salario: number | null
         }
         Insert: {
+          beneficios_exhibit_b?: string | null
           candidato_id?: string | null
           cargo: string
           colaborador_id?: string | null
@@ -506,6 +509,7 @@ export type Database = {
           departamento?: string | null
           dia_pago?: string
           documento_url?: string | null
+          duracion_meses?: number | null
           empresa: string
           estado?: Database["public"]["Enums"]["contrato_estado"]
           fecha_fin: string
@@ -520,6 +524,7 @@ export type Database = {
           salario?: number | null
         }
         Update: {
+          beneficios_exhibit_b?: string | null
           candidato_id?: string | null
           cargo?: string
           colaborador_id?: string | null
@@ -527,6 +532,7 @@ export type Database = {
           departamento?: string | null
           dia_pago?: string
           documento_url?: string | null
+          duracion_meses?: number | null
           empresa?: string
           estado?: Database["public"]["Enums"]["contrato_estado"]
           fecha_fin?: string

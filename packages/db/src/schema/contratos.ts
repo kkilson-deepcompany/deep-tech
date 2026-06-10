@@ -1,4 +1,4 @@
-import { date, integer, numeric, pgTable, text, uuid } from 'drizzle-orm/pg-core';
+import { date, integer, numeric, pgTable, smallint, text, uuid } from 'drizzle-orm/pg-core';
 import { createdAt, id } from './_shared';
 import { contratoEstadoEnum, contratoPlantillaEnum } from './enums';
 import { candidatos } from './candidatos';
@@ -23,6 +23,9 @@ export const contratos = pgTable('contratos', {
   diaPago: text('dia_pago').notNull().default('30'),
   estado: contratoEstadoEnum('estado').notNull().default('En Prueba'),
   plantilla: contratoPlantillaEnum('plantilla').notNull().default('Tiempo Determinado'),
+  // Consulting Agreement (plantilla US): vigencia y beneficios del Exhibit B.
+  duracionMeses: smallint('duracion_meses'),
+  beneficiosExhibitB: text('beneficios_exhibit_b'),
   documentoUrl: text('documento_url'),
   notas: text('notas'),
   createdAt: createdAt(),

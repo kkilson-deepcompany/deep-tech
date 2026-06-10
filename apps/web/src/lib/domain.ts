@@ -249,6 +249,8 @@ export interface Contrato {
   dia_pago: string;
   estado: ContratoEstado;
   plantilla: ContratoPlantilla;
+  duracion_meses: number | null;
+  beneficios_exhibit_b: string | null;
   documento_url: string | null;
   notas: string | null;
   created_at: string;
