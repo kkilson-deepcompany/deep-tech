@@ -98,3 +98,7 @@ credentials.json
 
 # Claude Code (ajustes locales/personales)
 .claude/settings.local.json
+
+# Consulting Agreement PDFs generados (muestras / descargas de prueba)
+Consulting-Agreement-MUESTRA.pdf
+apps/web/consulting-agreement-*.pdf
