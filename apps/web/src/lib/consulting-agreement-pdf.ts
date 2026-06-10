@@ -470,7 +470,7 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
     y += opts.gapAfter ?? 6;
   }
 
-  function drawRow(cells: [string, string, string], header: boolean) {
+  function drawRow(cells: [string, string, string], header: boolean, whiteGrid = false) {
     const colX = [mX, mX + 44, mX + maxW - 168];
     const colW = [40, maxW - 44 - 168 - 6, 168];
     font(header);
@@ -478,7 +478,7 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
     const wrapped = cells.map((c, i) => doc.splitTextToSize(clean(c), colW[i] ?? 100) as string[]);
     const rowH = Math.max(...wrapped.map((w) => w.length)) * (FS - 1) * 1.3 + 10;
     ensure(rowH);
-    doc.setDrawColor(150);
+    doc.setDrawColor(whiteGrid ? 255 : 150);
     doc.setLineWidth(0.5);
     doc.rect(mX, y - FS, maxW, rowH);
     for (let i = 0; i < 3; i++) {
@@ -491,10 +491,13 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
     y += rowH;
   }
 
-  // Heading de exhibit: "EXHIBIT X" (negrita+subrayado) + subtítulo (negrita).
-  function exhibitHeading(code: string, title: string) {
+  // Heading de exhibit: "EXHIBIT X" (negrita+subrayado) + subtítulo(s) (negrita).
+  function exhibitHeading(code: string, title: string | string[]) {
     centerLine(code, { bold: true, underline: true, gap: FS * 1.7 });
-    centerLine(title, { bold: true, gap: FS * 1.8 });
+    const lines = Array.isArray(title) ? title : [title];
+    lines.forEach((ln, i) =>
+      centerLine(ln, { bold: true, gap: i === lines.length - 1 ? FS * 1.8 : FS * 1.3 }),
+    );
   }
 
   // Con interlineado 1.5, una línea de separación entre párrafos basta para
@@ -543,7 +546,7 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   );
   para('', { boldLead: 'THE COMPANY:', gapAfter: 4 });
   para('DEEPCOMPANY');
-  y += 26;
+  y += LH * 4;
   para('______________________________');
   para('(Signature)');
   para('Name: Roger Hernández Mendoza');
@@ -552,7 +555,7 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   para('Date: ____________', { gapAfter: 20 });
   para('', { boldLead: 'CONSULTANT:', gapAfter: 4 });
   para(data.consultantName);
-  y += 26;
+  y += LH * 4;
   para('______________________________');
   para('(Signature)');
   if (data.cedula) para(`ID: ${data.cedula}`);
@@ -588,13 +591,17 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
 
   // ── EXHIBIT C ───────────────────────────────────────────────────────────────
   newPage();
-  exhibitHeading('EXHIBIT C', 'LIST OF PRIOR INVENTIONS AND ORIGINAL WORKS OF AUTHORSHIP EXCLUDED UNDER SECTION 6(a)');
+  exhibitHeading('EXHIBIT C', [
+    'LIST OF PRIOR INVENTIONS',
+    'AND ORIGINAL WORKS OF AUTHORSHIP',
+    'EXCLUDED UNDER SECTION 6(a)',
+  ]);
   para(
     'The following is a list of all Inventions that, as of the Effective Date: (A) have been created by or on behalf of Consultant, and/or (B) are owned exclusively by Consultant or jointly by Consultant with others or in which Consultant has an interest, and that relate in any way to any of the Company\'s actual or proposed businesses, products, services, or research and development, and which are not assigned to the Company hereunder:',
     { justify: true },
   );
-  drawRow(['Title', 'Date', 'Identifying Number or Brief Description'], true);
-  drawRow(['', '', ''], false);
+  drawRow(['Title', 'Date', 'Identifying Number or Brief Description'], true, true);
+  drawRow(['', '', ''], false, true);
   para('Except as indicated above on this Exhibit, Consultant has no inventions, improvements or original works to disclose pursuant to Section 6(a) of this Agreement.');
   para('___ Additional sheets attached', { gapAfter: 14 });
   para('Signature of Consultant: ____________________________');
@@ -631,7 +638,8 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   // ── EXHIBIT F ───────────────────────────────────────────────────────────────
   newPage();
   exhibitHeading('EXHIBIT F', 'LIST OF COMPANIES EXCLUDED UNDER SECTION 16');
-  para('_X_ No conflicts          ___ Additional Sheets Attached', { gapAfter: 14 });
+  para('_X_ No conflicts          ___ Additional Sheets Attached');
+  y = Math.max(y, bodyBottom - LH * 4); // firma cerca del pie (zona en blanco)
   para('Signature of Consultant: ____________________________');
   para(`Print Name of Consultant: ${data.consultantName}`);
   para('Date: ____________');
@@ -639,7 +647,8 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   // ── EXHIBIT G ───────────────────────────────────────────────────────────────
   newPage();
   exhibitHeading('EXHIBIT G', 'RESTRICTIVE AGREEMENTS UNDER SECTION 17');
-  para('_X_ None          ___ Additional Sheets Attached', { gapAfter: 14 });
+  para('_X_ None          ___ Additional Sheets Attached');
+  y = Math.max(y, bodyBottom - LH * 4); // firma cerca del pie (zona en blanco)
   para('Signature of Consultant: ____________________________');
   para(`Print Name of Consultant: ${data.consultantName}`);
   para('Date: ____________');
