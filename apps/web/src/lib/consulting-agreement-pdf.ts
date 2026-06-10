@@ -325,9 +325,17 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   const doc = new jsPDF({ unit: 'pt', format: 'letter' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const margin = 56;
-  const maxW = pageW - margin * 2;
-  let y = 64;
+
+  // Márgenes (1 pt = 1/72"). 2.54 cm = 72 pt (laterales); 1.27 cm = 36 pt (encab./pie).
+  const mX = 72;
+  const headerY = 36;
+  const footerY = pageH - 36;
+  const bodyTop = 72;
+  const bodyBottom = pageH - 56;
+  const maxW = pageW - mX * 2;
+  const FS = 12; // Times New Roman 12
+  const LH = FS * 1.35;
+  let y = bodyTop;
 
   const eff = parseYmd(data.effectiveDate);
   const months = data.months > 0 ? data.months : 3;
@@ -337,111 +345,168 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   const endDate = eff ? formatEnglish(addMonths(eff, months)) : '____________';
   const effLabel = eff ? formatEnglish(eff) : '____________';
 
+  const font = (bold: boolean) => doc.setFont('times', bold ? 'bold' : 'normal');
+
   function ensure(needed: number) {
-    if (y + needed > pageH - margin) {
+    if (y + needed > bodyBottom) {
       doc.addPage();
-      y = 64;
+      y = bodyTop;
     }
   }
-  function center(text: string, size: number, bold: boolean, gap = 16) {
-    doc.setFont('times', bold ? 'bold' : 'normal');
-    doc.setFontSize(size);
-    ensure(gap);
-    doc.text(clean(text), pageW / 2, y, { align: 'center' });
-    y += gap;
+  function newPage() {
+    doc.addPage();
+    y = bodyTop;
   }
-  /** Párrafo justificado opcional con sangría y un "run" inicial en negrita. */
-  function para(
+  function underline(x: number, width: number, baseline: number) {
+    doc.setLineWidth(0.6);
+    doc.line(x, baseline + 1.5, x + width, baseline + 1.5);
+  }
+
+  /** Línea centrada, opcionalmente negrita y/o subrayada. */
+  function centerLine(
     text: string,
-    opts: { size?: number; indent?: number; boldLead?: string; gapAfter?: number; justify?: boolean } = {},
+    opts: { bold?: boolean; underline?: boolean; size?: number; gap?: number } = {},
   ) {
-    const size = opts.size ?? 9.5;
-    const indent = opts.indent ?? 0;
-    const lh = size * 1.34;
-    const x0 = margin + indent;
-    const w = maxW - indent;
+    const size = opts.size ?? FS;
+    font(!!opts.bold);
     doc.setFontSize(size);
-
-    // Construye el texto completo con el lead para medir el wrap homogéneo.
-    const lead = opts.boldLead ? `${opts.boldLead} ` : '';
-    doc.setFont('times', 'normal');
-    const lines = doc.splitTextToSize(clean(lead + text), w) as string[];
-
-    for (let i = 0; i < lines.length; i++) {
-      const ln = lines[i] ?? '';
-      ensure(lh);
-      const isLast = i === lines.length - 1;
-      if (i === 0 && lead) {
-        // Primera línea: pinta el lead en negrita y el resto normal.
-        doc.setFont('times', 'bold');
-        doc.text(clean(lead), x0, y);
-        const leadW = doc.getTextWidth(clean(lead));
-        doc.setFont('times', 'normal');
-        const rest = ln.slice(lead.length);
-        if (opts.justify && !isLast) {
-          justifiedLine(rest.trimStart(), x0 + leadW, w - leadW, size);
-        } else {
-          doc.text(rest.trimStart(), x0 + leadW, y);
-        }
-      } else if (opts.justify && !isLast) {
-        justifiedLine(ln, x0, w, size);
-      } else {
-        doc.text(ln, x0, y);
-      }
-      y += lh;
+    const t = clean(text);
+    ensure(size * 1.5);
+    doc.text(t, pageW / 2, y, { align: 'center' });
+    if (opts.underline) {
+      const w = doc.getTextWidth(t);
+      underline(pageW / 2 - w / 2, w, y);
     }
-    y += opts.gapAfter ?? 6;
+    y += opts.gap ?? size * 1.6;
   }
-  /** Dibuja una línea justificada distribuyendo el espacio entre palabras. */
-  function justifiedLine(line: string, x: number, width: number, size: number) {
+
+  /** Distribuye espacio entre palabras para justificar una línea. */
+  function justifiedLine(line: string, x: number, width: number) {
     const words = line.split(' ').filter(Boolean);
     if (words.length < 2) {
       doc.text(line, x, y);
       return;
     }
-    doc.setFontSize(size);
-    const wordsW = words.reduce((sum, w) => sum + doc.getTextWidth(w), 0);
+    const wordsW = words.reduce((s, w) => s + doc.getTextWidth(w), 0);
     const gap = (width - wordsW) / (words.length - 1);
     let cx = x;
-    for (const word of words) {
-      doc.text(word, cx, y);
-      cx += doc.getTextWidth(word) + gap;
+    for (const w of words) {
+      doc.text(w, cx, y);
+      cx += doc.getTextWidth(w) + gap;
     }
   }
 
-  // ── Encabezado ──────────────────────────────────────────────────────────────
-  center('DEEPCOMPANY LLC', 13, true, 20);
-  center('CONSULTING AGREEMENT', 11, true, 24);
+  /**
+   * Párrafo justificado con un "lead" inicial opcional en negrita (y subrayado).
+   * El lead se usa para los títulos de sección/sub-cláusula que van inline.
+   */
+  function para(
+    text: string,
+    opts: {
+      indent?: number;
+      boldLead?: string;
+      underlineLead?: boolean;
+      justify?: boolean;
+      gapAfter?: number;
+    } = {},
+  ) {
+    const indent = opts.indent ?? 0;
+    const x0 = mX + indent;
+    const w = maxW - indent;
+    doc.setFontSize(FS);
+    const lead = opts.boldLead ? `${opts.boldLead} ` : '';
+    font(false);
+    const lines = doc.splitTextToSize(clean(lead + text), w) as string[];
 
-  para(`${data.consultantName} ("Consultant")`, { boldLead: 'Consultant Name:' });
-  para(effLabel, { boldLead: 'Effective Date:' });
+    for (let i = 0; i < lines.length; i++) {
+      const ln = lines[i] ?? '';
+      ensure(LH);
+      const isLast = i === lines.length - 1;
+      if (i === 0 && lead) {
+        font(true);
+        const leadClean = clean(lead);
+        const leadTrim = leadClean.trimEnd();
+        doc.text(leadClean, x0, y);
+        const leadW = doc.getTextWidth(leadClean);
+        if (opts.underlineLead) underline(x0, doc.getTextWidth(leadTrim), y);
+        font(false);
+        const rest = ln.slice(leadClean.length);
+        if (opts.justify && !isLast) justifiedLine(rest, x0 + leadW, w - leadW);
+        else doc.text(rest, x0 + leadW, y);
+      } else if (opts.justify && !isLast) {
+        justifiedLine(ln, x0, w);
+      } else {
+        doc.text(ln, x0, y);
+      }
+      y += LH;
+    }
+    y += opts.gapAfter ?? 6;
+  }
+
+  function drawRow(cells: [string, string, string], header: boolean) {
+    const colX = [mX, mX + 44, mX + maxW - 168];
+    const colW = [40, maxW - 44 - 168 - 6, 168];
+    font(header);
+    doc.setFontSize(FS - 1);
+    const wrapped = cells.map((c, i) => doc.splitTextToSize(clean(c), colW[i] ?? 100) as string[]);
+    const rowH = Math.max(...wrapped.map((w) => w.length)) * (FS - 1) * 1.3 + 10;
+    ensure(rowH);
+    doc.setDrawColor(150);
+    doc.setLineWidth(0.5);
+    doc.rect(mX, y - FS, maxW, rowH);
+    for (let i = 0; i < 3; i++) {
+      let ty = y;
+      for (const ln of wrapped[i] ?? []) {
+        doc.text(ln, (colX[i] ?? mX) + 4, ty);
+        ty += (FS - 1) * 1.3;
+      }
+    }
+    y += rowH;
+  }
+
+  // Heading de exhibit: "EXHIBIT X" (negrita+subrayado) + subtítulo (negrita).
+  function exhibitHeading(code: string, title: string) {
+    centerLine(code, { bold: true, underline: true, gap: FS * 1.7 });
+    centerLine(title, { bold: true, gap: FS * 1.8 });
+  }
+
+  // ── Portada (centrada) ──────────────────────────────────────────────────────
+  centerLine('DEEPCOMPANY LLC', { bold: true, gap: FS * 1.8 });
+  centerLine('CONSULTING AGREEMENT', { bold: true, underline: true, gap: FS * 2.2 });
+  centerLine(`Consultant Name: ${data.consultantName} ("Consultant")`, { gap: FS * 1.6 });
+  centerLine(`Effective Date: ${effLabel}`, { gap: FS * 2.0 });
 
   para(
     'As a condition of becoming retained (or Consultant\'s consulting relationship being continued) by Deepcompany LLC, a Delaware corporation registered under File Number 7091553, SR 20187036768, or any of its current or future subsidiaries, affiliates, successors or assigns (collectively, the "Company"), and in consideration of Consultant\'s consulting relationship with the Company and receipt of the compensation now and hereafter paid by the Company, Consultant hereby agrees to the following:',
     { justify: true },
   );
 
+  // ── Secciones 1-18 ──────────────────────────────────────────────────────────
   for (const s of SECTIONS) {
     if (s.intro) {
-      para(s.intro, { boldLead: `${s.n}. ${s.title}`, justify: true });
+      para(s.intro, { boldLead: `${s.n}. ${s.title}`, underlineLead: true, justify: true });
     } else {
-      para('', { boldLead: `${s.n}. ${s.title}`, gapAfter: 2 });
+      para('', { boldLead: `${s.n}. ${s.title}`, underlineLead: true, gapAfter: 3 });
     }
-    for (const sub of s.subs ?? []) {
-      para(sub.text, { indent: 18, boldLead: `${sub.m} ${sub.title ?? ''}`.trim(), justify: true });
-    }
+    (s.subs ?? []).forEach((sub, idx) => {
+      const marker = `(${String.fromCharCode(97 + idx)})`;
+      para(sub.text, {
+        indent: 26,
+        boldLead: `${marker} ${sub.title ?? ''}`.trim(),
+        underlineLead: true,
+        justify: true,
+      });
+    });
   }
 
-  // ── Página de firmas ────────────────────────────────────────────────────────
-  doc.addPage();
-  y = 64;
-  para('[Signature Page Follows]', { size: 9 });
+  // ── Página de firmas (independiente) ────────────────────────────────────────
+  newPage();
+  para('[Signature Page Follows]');
   para(
     'The parties have executed this Agreement on the respective dates set forth below, to be effective as of the Effective Date first above written.',
-    { justify: true },
+    { justify: true, gapAfter: 18 },
   );
-  y += 8;
-  para('THE COMPANY:', { boldLead: 'THE COMPANY:', gapAfter: 2 });
+  para('', { boldLead: 'THE COMPANY:', gapAfter: 4 });
   para('DEEPCOMPANY');
   y += 26;
   para('______________________________');
@@ -449,9 +514,8 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   para('Name: Roger Hernández Mendoza');
   para('Title: CEO');
   para('Address: 16192 Coastal Highway, Lewes, Delaware 19958, United States');
-  para('Date: ____________');
-  y += 14;
-  para('CONSULTANT:', { boldLead: 'CONSULTANT:', gapAfter: 2 });
+  para('Date: ____________', { gapAfter: 20 });
+  para('', { boldLead: 'CONSULTANT:', gapAfter: 4 });
   para(data.consultantName);
   y += 26;
   para('______________________________');
@@ -461,19 +525,15 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   para('Email: ______________________________________');
   para('Date: ____________');
 
-  // ── EXHIBIT A ───────────────────────────────────────────────────────────────
-  doc.addPage();
-  y = 64;
-  center('EXHIBIT A', 11, true, 18);
-  center('DESCRIPTION OF CONSULTING SERVICES', 10, true, 22);
-  // Tabla simple: # | Description of Services | Schedule/Deadline
+  // ── EXHIBIT A (página independiente) ────────────────────────────────────────
+  newPage();
+  exhibitHeading('EXHIBIT A', 'DESCRIPTION OF CONSULTING SERVICES');
   drawRow(['', 'Description of Services', 'Schedule/Deadline'], true);
   drawRow(['1.', data.cargo, 'As requested by Company'], false);
 
   // ── EXHIBIT B ───────────────────────────────────────────────────────────────
-  y += 18;
-  center('EXHIBIT B', 11, true, 18);
-  center('COMPENSATION', 10, true, 22);
+  newPage();
+  exhibitHeading('EXHIBIT B', 'COMPENSATION');
   para(
     `For Services rendered by the Consultant under this Agreement, the Company will pay the Consultant $${usd(
       hourly,
@@ -486,17 +546,14 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
     para(data.beneficiosExtra.trim(), { boldLead: 'Additional benefits:', justify: true });
   }
 
-  y += 16;
-  center('EXHIBIT B-1', 11, true, 16);
-  center('ALLOWABLE EXPENSES', 10, true, 20);
+  // ── EXHIBIT B-1 ─────────────────────────────────────────────────────────────
+  newPage();
+  exhibitHeading('EXHIBIT B-1', 'ALLOWABLE EXPENSES');
   para('None, except as otherwise agreed to in writing by the Company\'s CFO.');
 
   // ── EXHIBIT C ───────────────────────────────────────────────────────────────
-  doc.addPage();
-  y = 64;
-  center('EXHIBIT C', 11, true, 16);
-  center('LIST OF PRIOR INVENTIONS AND ORIGINAL WORKS OF AUTHORSHIP', 9.5, true, 13);
-  center('EXCLUDED UNDER SECTION 6(a)', 9.5, true, 20);
+  newPage();
+  exhibitHeading('EXHIBIT C', 'LIST OF PRIOR INVENTIONS AND ORIGINAL WORKS OF AUTHORSHIP EXCLUDED UNDER SECTION 6(a)');
   para(
     'The following is a list of all Inventions that, as of the Effective Date: (A) have been created by or on behalf of Consultant, and/or (B) are owned exclusively by Consultant or jointly by Consultant with others or in which Consultant has an interest, and that relate in any way to any of the Company\'s actual or proposed businesses, products, services, or research and development, and which are not assigned to the Company hereunder:',
     { justify: true },
@@ -504,17 +561,14 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   drawRow(['Title', 'Date', 'Identifying Number or Brief Description'], true);
   drawRow(['', '', ''], false);
   para('Except as indicated above on this Exhibit, Consultant has no inventions, improvements or original works to disclose pursuant to Section 6(a) of this Agreement.');
-  para('___ Additional sheets attached');
-  y += 6;
+  para('___ Additional sheets attached', { gapAfter: 14 });
   para('Signature of Consultant: ____________________________');
   para(`Print Name of Consultant: ${data.consultantName}`);
   para('Date: ____________');
 
   // ── EXHIBIT D ───────────────────────────────────────────────────────────────
-  doc.addPage();
-  y = 64;
-  center('EXHIBIT D', 11, true, 16);
-  center('TERMINATION CERTIFICATION', 10, true, 20);
+  newPage();
+  exhibitHeading('EXHIBIT D', 'TERMINATION CERTIFICATION');
   para(
     'This is to certify that Consultant does not have in Consultant\'s possession, nor has Consultant failed to return, any devices, records, data, notes, reports, proposals, lists, correspondence, specifications, drawings, blueprints, sketches, laboratory notebooks, flow charts, materials, equipment, other documents or property, or copies or reproductions of any aforementioned items belonging to DEEPCOMPANY LLC, a Delaware corporation, its subsidiaries, affiliates, successors or assigns (collectively, the "Company").',
     { justify: true },
@@ -525,61 +579,48 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   );
   para(
     'Consultant further agrees that for twelve (12) months immediately following the termination of Consultant\'s Relationship with the Company, Consultant shall not either directly or indirectly solicit any of the Company\'s employees or consultants to terminate their relationship with the Company, or attempt to solicit employees or consultants of the Company, either for Consultant or for any other person or entity.',
+    { justify: true, gapAfter: 14 },
+  );
+  para('Signature of Consultant: ____________________________');
+  para(`Print Name of Consultant: ${data.consultantName}`);
+  para('Date: ____________');
+
+  // ── EXHIBIT E ───────────────────────────────────────────────────────────────
+  newPage();
+  exhibitHeading('EXHIBIT E', 'INTERNAL REGULATIONS');
+  para(
+    'The Company\'s internal regulations, policies and code of conduct, as may be adopted and amended by the Company from time to time, are incorporated herein by reference and form part of this Agreement.',
     { justify: true },
   );
-  y += 6;
+
+  // ── EXHIBIT F ───────────────────────────────────────────────────────────────
+  newPage();
+  exhibitHeading('EXHIBIT F', 'LIST OF COMPANIES EXCLUDED UNDER SECTION 16');
+  para('_X_ No conflicts          ___ Additional Sheets Attached', { gapAfter: 14 });
   para('Signature of Consultant: ____________________________');
   para(`Print Name of Consultant: ${data.consultantName}`);
   para('Date: ____________');
 
-  // ── EXHIBIT F y G ───────────────────────────────────────────────────────────
-  doc.addPage();
-  y = 64;
-  center('EXHIBIT F', 11, true, 16);
-  center('LIST OF COMPANIES EXCLUDED UNDER SECTION 16', 9.5, true, 20);
-  para('_X_ No conflicts          ___ Additional Sheets Attached');
-  para('Signature of Consultant: ____________________________');
-  para(`Print Name of Consultant: ${data.consultantName}`);
-  para('Date: ____________');
-  y += 16;
-  center('EXHIBIT G', 11, true, 16);
-  center('RESTRICTIVE AGREEMENTS UNDER SECTION 17', 9.5, true, 20);
-  para('_X_ None          ___ Additional Sheets Attached');
+  // ── EXHIBIT G ───────────────────────────────────────────────────────────────
+  newPage();
+  exhibitHeading('EXHIBIT G', 'RESTRICTIVE AGREEMENTS UNDER SECTION 17');
+  para('_X_ None          ___ Additional Sheets Attached', { gapAfter: 14 });
   para('Signature of Consultant: ____________________________');
   para(`Print Name of Consultant: ${data.consultantName}`);
   para('Date: ____________');
 
-  // ── Pie de página ───────────────────────────────────────────────────────────
+  // ── Encabezado y pie de página en todas las páginas ─────────────────────────
   const total = doc.getNumberOfPages();
   for (let i = 1; i <= total; i++) {
     doc.setPage(i);
-    doc.setFont('times', 'normal');
+    font(false);
     doc.setFontSize(8);
     doc.setTextColor(120);
-    doc.text(`Deepcompany LLC · Consulting Agreement · ${data.consultantName}`, margin, pageH - 28);
-    doc.text(`${i} / ${total}`, pageW - margin, pageH - 28, { align: 'right' });
+    doc.text('DEEPCOMPANY LLC', mX, headerY, { align: 'left' });
+    doc.text('Consulting Agreement', pageW - mX, headerY, { align: 'right' });
+    doc.text(data.consultantName, mX, footerY);
+    doc.text(`${i} / ${total}`, pageW - mX, footerY, { align: 'right' });
     doc.setTextColor(0);
-  }
-
-  function drawRow(cells: [string, string, string], header: boolean) {
-    const colX = [margin, margin + 40, margin + maxW - 150];
-    const colW = [36, maxW - 40 - 150 - 6, 150];
-    const size = 9;
-    doc.setFont('times', header ? 'bold' : 'normal');
-    doc.setFontSize(size);
-    const wrapped = cells.map((c, i) => doc.splitTextToSize(clean(c), colW[i] ?? 100) as string[]);
-    const rowH = Math.max(...wrapped.map((w) => w.length)) * size * 1.3 + 8;
-    ensure(rowH);
-    doc.setDrawColor(180);
-    doc.rect(margin, y - size, maxW, rowH);
-    for (let i = 0; i < 3; i++) {
-      let ty = y;
-      for (const ln of wrapped[i] ?? []) {
-        doc.text(ln, (colX[i] ?? margin) + 3, ty);
-        ty += size * 1.3;
-      }
-    }
-    y += rowH;
   }
 
   return doc;
