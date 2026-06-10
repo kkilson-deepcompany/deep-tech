@@ -514,11 +514,12 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   // ── Secciones 1-18 ──────────────────────────────────────────────────────────
   // Las sub-cláusulas (a),(b)… reciben una SEGUNDA sangría especial (doble) en su
   // primera línea, sobre la sangría base de los párrafos justificados.
+  // Regla: cada punto y aparte (sección o sub-cláusula) lleva dos espacios.
   for (const s of SECTIONS) {
     if (s.intro) {
-      para(s.intro, { boldLead: `${s.n}. ${s.title}`, underlineLead: true, justify: true });
+      para(s.intro, { boldLead: `${s.n}. ${s.title}`, underlineLead: true, justify: true, gapAfter: TWO });
     } else {
-      para('', { boldLead: `${s.n}. ${s.title}`, underlineLead: true, gapAfter: 3 });
+      para('', { boldLead: `${s.n}. ${s.title}`, underlineLead: true, gapAfter: TWO });
     }
     (s.subs ?? []).forEach((sub, idx) => {
       const marker = `(${String.fromCharCode(97 + idx)})`;
@@ -527,6 +528,7 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
         boldLead: `${marker} ${sub.title ?? ''}`.trim(),
         underlineLead: true,
         justify: true,
+        gapAfter: TWO,
       });
     });
   }
