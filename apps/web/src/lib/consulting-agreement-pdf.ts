@@ -400,6 +400,29 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
    * Párrafo justificado con un "lead" inicial opcional en negrita (y subrayado).
    * El lead se usa para los títulos de sección/sub-cláusula que van inline.
    */
+  // Sangría especial de primera línea: 1.27 cm (36 pt), solo en párrafos justificados.
+  const FIRST_INDENT = 36;
+
+  /** Envuelve texto con un ancho distinto para la primera línea (sangría). */
+  function wrapFirstIndent(full: string, firstW: number, restW: number): string[] {
+    const words = clean(full).split(/\s+/).filter(Boolean);
+    const lines: string[] = [];
+    let cur = '';
+    let limit = firstW;
+    for (const word of words) {
+      const trial = cur ? `${cur} ${word}` : word;
+      if (!cur || doc.getTextWidth(trial) <= limit) {
+        cur = trial;
+      } else {
+        lines.push(cur);
+        cur = word;
+        limit = restW;
+      }
+    }
+    if (cur) lines.push(cur);
+    return lines.length ? lines : [''];
+  }
+
   function para(
     text: string,
     opts: {
@@ -408,35 +431,39 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
       underlineLead?: boolean;
       justify?: boolean;
       gapAfter?: number;
+      firstIndent?: number;
     } = {},
   ) {
     const indent = opts.indent ?? 0;
     const x0 = mX + indent;
     const w = maxW - indent;
+    const firstIndent = opts.firstIndent ?? (opts.justify ? FIRST_INDENT : 0);
     doc.setFontSize(FS);
     const lead = opts.boldLead ? `${opts.boldLead} ` : '';
+    const leadClean = clean(lead);
     font(false);
-    const lines = doc.splitTextToSize(clean(lead + text), w) as string[];
+    const lines = wrapFirstIndent(lead + text, w - firstIndent, w);
 
     for (let i = 0; i < lines.length; i++) {
       const ln = lines[i] ?? '';
       ensure(LH);
       const isLast = i === lines.length - 1;
+      const lineX = i === 0 ? x0 + firstIndent : x0;
+      const lineW = i === 0 ? w - firstIndent : w;
       if (i === 0 && lead) {
         font(true);
-        const leadClean = clean(lead);
         const leadTrim = leadClean.trimEnd();
-        doc.text(leadClean, x0, y);
+        doc.text(leadClean, lineX, y);
         const leadW = doc.getTextWidth(leadClean);
-        if (opts.underlineLead) underline(x0, doc.getTextWidth(leadTrim), y);
+        if (opts.underlineLead) underline(lineX, doc.getTextWidth(leadTrim), y);
         font(false);
         const rest = ln.slice(leadClean.length);
-        if (opts.justify && !isLast) justifiedLine(rest, x0 + leadW, w - leadW);
-        else doc.text(rest, x0 + leadW, y);
+        if (opts.justify && !isLast) justifiedLine(rest, lineX + leadW, lineW - leadW);
+        else doc.text(rest, lineX + leadW, y);
       } else if (opts.justify && !isLast) {
-        justifiedLine(ln, x0, w);
+        justifiedLine(ln, lineX, lineW);
       } else {
-        doc.text(ln, x0, y);
+        doc.text(ln, lineX, y);
       }
       y += LH;
     }
