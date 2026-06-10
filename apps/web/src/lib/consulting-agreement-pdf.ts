@@ -613,8 +613,46 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
     'The following is a list of all Inventions that, as of the Effective Date: (A) have been created by or on behalf of Consultant, and/or (B) are owned exclusively by Consultant or jointly by Consultant with others or in which Consultant has an interest, and that relate in any way to any of the Company\'s actual or proposed businesses, products, services, or research and development, and which are not assigned to the Company hereunder:',
     { justify: true },
   );
-  drawRow(['Title', 'Date', 'Identifying Number or Brief Description'], true, true);
-  drawRow(['', '', ''], false, true);
+  // Tabla de invenciones: 3 columnas con bordes negros, encabezados centrados
+  // ("Title" y "Date" subrayados) y una fila vacía.
+  {
+    const x0 = mX;
+    const w1 = maxW * 0.28;
+    const w2 = maxW * 0.28;
+    const w3 = maxW - w1 - w2;
+    const cx = [x0, x0 + w1, x0 + w1 + w2];
+    const cw = [w1, w2, w3];
+    const hH = LH * 2 + 8; // alto del encabezado (cabe 2 líneas)
+    const dH = LH * 1.8; // alto de la fila vacía
+    ensure(hH + dH + LH);
+    const top = y;
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.8);
+    doc.rect(x0, top, maxW, hH + dH); // borde externo
+    doc.line(x0, top + hH, x0 + maxW, top + hH); // separa encabezado/fila
+    doc.line(cx[1] ?? x0, top, cx[1] ?? x0, top + hH + dH); // divisor col 1-2
+    doc.line(cx[2] ?? x0, top, cx[2] ?? x0, top + hH + dH); // divisor col 2-3
+    font(true);
+    doc.setFontSize(FS);
+    const hdr = (linesArr: string[], ci: number, underlined: boolean) => {
+      const centerX = (cx[ci] ?? x0) + (cw[ci] ?? 0) / 2;
+      const startY = top + (hH - (linesArr.length - 1) * LH) / 2 + FS * 0.35;
+      linesArr.forEach((t, k) => {
+        const ty = startY + k * LH;
+        const tc = clean(t);
+        doc.text(tc, centerX, ty, { align: 'center' });
+        if (underlined) {
+          const tw = doc.getTextWidth(tc);
+          doc.line(centerX - tw / 2, ty + 1.5, centerX + tw / 2, ty + 1.5);
+        }
+      });
+    };
+    hdr(['Title'], 0, true);
+    hdr(['Date'], 1, true);
+    hdr(['Identifying Number', 'or Brief Description'], 2, false);
+    font(false);
+    y = top + hH + dH;
+  }
   y += LH * 6; // ~6 líneas en blanco tras la tabla
   para('Except as indicated above on this Exhibit, Consultant has no inventions, improvements or original works to disclose pursuant to Section 6(a) of this Agreement.');
   para('___ Additional sheets attached', { gapAfter: 14 });
