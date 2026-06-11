@@ -9,6 +9,7 @@ import {
   updateNominaSemanalRow,
 } from '@/lib/queries';
 import { formatMoney, round2, type NominaSemanalRow } from '@/lib/domain';
+import { CESTATICKET_USD, desglosarPaqueteVE } from '@/lib/nomina-ve';
 import { generarPagoSemanalPdf } from '@/lib/pago-semanal-pdf';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
@@ -37,7 +38,7 @@ const SEMANA_LABEL: Record<number, string> = {
 const montoSemana = (r: NominaSemanalRow, n: number): number =>
   Number(n === 1 ? r.semana1 : n === 2 ? r.semana2 : n === 3 ? r.semana3 : r.semana4) || 0;
 
-type Tab = 'plan' | 'generar';
+type Tab = 'plan' | 'generar' | 'deducciones';
 
 export function PagoSemanalPage() {
   const qc = useQueryClient();
@@ -106,7 +107,30 @@ export function PagoSemanalPage() {
   const TABS: [Tab, string][] = [
     ['plan', 'Plan (editable)'],
     ['generar', 'Generar pago'],
+    ['deducciones', 'Deducciones (LOTTT)'],
   ];
+
+  // Desglose inverso (Top-Down) por colaborador sobre el monto mensual (paquete meta).
+  const desgloses = useMemo(
+    () => rows.map((r) => ({ row: r, d: desglosarPaqueteVE(Number(r.monto_mensual) || 0) })),
+    [rows],
+  );
+  const totDes = useMemo(
+    () =>
+      desgloses.reduce(
+        (a, { d }) => ({
+          paquete: a.paquete + d.paquete,
+          normal: a.normal + d.salarioNormal,
+          util: a.util + d.aliqUtilidades,
+          vac: a.vac + d.aliqVacaciones,
+          ret: a.ret + d.retencionPrestaciones,
+          cesta: a.cesta + d.cestaticket,
+          costo: a.costo + d.costoTotal,
+        }),
+        { paquete: 0, normal: 0, util: 0, vac: 0, ret: 0, cesta: 0, costo: 0 },
+      ),
+    [desgloses],
+  );
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -227,7 +251,7 @@ export function PagoSemanalPage() {
             </table>
           </CardContent>
         </Card>
-      ) : (
+      ) : tab === 'generar' ? (
         /* ── Generar pago ───────────────────────────────────────────────── */
         <>
           <Card>
@@ -349,6 +373,65 @@ export function PagoSemanalPage() {
               Descargar PDF
             </Button>
           </div>
+        </>
+      ) : (
+        /* ── Deducciones (LOTTT) — desglose inverso Top-Down ───────────────── */
+        <>
+          <Card>
+            <CardContent className="text-muted-foreground p-4 text-sm">
+              Desglose inverso del paquete integral mensual (LOTTT): el salario normal es{' '}
+              <strong>Paquete ÷ 1.125</strong>; las alícuotas de utilidades (30/360) y bono
+              vacacional (15/360) se retienen como provisión a fideicomiso. El cestaticket
+              (${CESTATICKET_USD}) es no salarial y va aparte.
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="overflow-x-auto p-0">
+              <table className="w-full text-sm">
+                <thead className="text-muted-foreground border-b text-left text-xs uppercase tracking-wide">
+                  <tr>
+                    <th className="px-3 py-3">Empleado</th>
+                    <th className="px-3 py-3 text-right">Paquete</th>
+                    <th className="px-3 py-3 text-right">Salario normal</th>
+                    <th className="px-3 py-3 text-right">Alíc. Util.</th>
+                    <th className="px-3 py-3 text-right">Alíc. Vac.</th>
+                    <th className="px-3 py-3 text-right">Retención</th>
+                    <th className="px-3 py-3 text-right">Cestaticket</th>
+                    <th className="px-3 py-3 text-right">Costo total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {desgloses.map(({ row, d }) => (
+                    <tr key={row.id} className="border-b last:border-0">
+                      <td className="px-3 py-2.5">
+                        <div className="font-medium">{row.empleado}</div>
+                        <div className="text-muted-foreground text-xs">{row.rol}</div>
+                      </td>
+                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.paquete)}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.salarioNormal)}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.aliqUtilidades)}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.aliqVacaciones)}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.retencionPrestaciones)}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.cestaticket)}</td>
+                      <td className="px-3 py-2.5 text-right font-medium tabular-nums">${formatMoney(d.costoTotal)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="border-t font-semibold">
+                  <tr>
+                    <td className="px-3 py-3">Totales</td>
+                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.paquete))}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.normal))}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.util))}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.vac))}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.ret))}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.cesta))}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.costo))}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </CardContent>
+          </Card>
         </>
       )}
 
