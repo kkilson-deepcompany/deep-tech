@@ -17,3 +17,4 @@ export * from './branding';
 export * from './kover';
 export * from './service-orders';
 export * from './support-tickets';
+export * from './nomina-semanal';

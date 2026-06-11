@@ -1235,6 +1235,65 @@ export type Database = {
           },
         ]
       }
+      nomina_semanal: {
+        Row: {
+          colaborador_id: string | null
+          created_at: string
+          departamento: string | null
+          empleado: string
+          estado: string
+          id: string
+          monto_mensual: number
+          orden: number
+          rol: string | null
+          semana1: number
+          semana2: number
+          semana3: number
+          semana4: number
+          updated_at: string
+        }
+        Insert: {
+          colaborador_id?: string | null
+          created_at?: string
+          departamento?: string | null
+          empleado: string
+          estado?: string
+          id?: string
+          monto_mensual?: number
+          orden?: number
+          rol?: string | null
+          semana1?: number
+          semana2?: number
+          semana3?: number
+          semana4?: number
+          updated_at?: string
+        }
+        Update: {
+          colaborador_id?: string | null
+          created_at?: string
+          departamento?: string | null
+          empleado?: string
+          estado?: string
+          id?: string
+          monto_mensual?: number
+          orden?: number
+          rol?: string | null
+          semana1?: number
+          semana2?: number
+          semana3?: number
+          semana4?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nomina_semanal_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nominas: {
         Row: {
           creado_por: string | null

@@ -403,6 +403,21 @@ export interface Beca {
   colaborador?: { nombre: string } | null;
 }
 
+export interface NominaSemanalRow {
+  id: string;
+  colaborador_id: string | null;
+  empleado: string;
+  rol: string | null;
+  departamento: string | null;
+  estado: string;
+  monto_mensual: string;
+  semana1: string;
+  semana2: string;
+  semana3: string;
+  semana4: string;
+  orden: number;
+}
+
 export interface FideicomisoSaldo {
   colaborador_id: string;
   nombre: string;

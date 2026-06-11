@@ -19,6 +19,7 @@ import type {
   IncomeProjection,
   Nomina,
   NominaRegistro,
+  NominaSemanalRow,
   PaymentReminder,
   Product,
   SeguroPlan,
@@ -570,4 +571,23 @@ export async function registrarBeneficioComoGasto(args: {
     .single();
   if (error) throw error;
   return (data as { id: string }).id;
+}
+
+// ── Nómina semanal (plan de pago) ────────────────────────────────────────────
+
+export async function fetchNominaSemanal(): Promise<NominaSemanalRow[]> {
+  const { data, error } = await supabase
+    .from('nomina_semanal')
+    .select('*')
+    .order('orden', { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as NominaSemanalRow[];
+}
+
+export async function updateNominaSemanalRow(
+  id: string,
+  patch: Partial<NominaSemanalRow>,
+): Promise<void> {
+  const { error } = await supabase.from('nomina_semanal').update(patch).eq('id', id);
+  if (error) throw error;
 }

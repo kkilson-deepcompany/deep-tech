@@ -23,6 +23,7 @@ import { IngresosPage } from '@/pages/ingresos-page';
 import { IngresoDetailPage } from '@/pages/ingreso-detail-page';
 import { NominasPage } from '@/pages/nominas-page';
 import { NominaDetailPage } from '@/pages/nomina-detail-page';
+import { PagoSemanalPage } from '@/pages/pago-semanal-page';
 import { GuardiasPage } from '@/pages/guardias-page';
 import { BeneficiosPage } from '@/pages/beneficios-page';
 import { ServiceOrdersPage } from '@/pages/service-orders-page';
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="/ingresos/:id" element={<IngresoDetailPage />} />
         <Route path="/nominas" element={<NominasPage />} />
         <Route path="/nominas/:id" element={<NominaDetailPage />} />
+        <Route path="/pago-semanal" element={<PagoSemanalPage />} />
         <Route path="/beneficios" element={<BeneficiosPage />} />
         <Route path="/guardias" element={<GuardiasPage />} />
         <Route path="/ordenes-servicio" element={<ServiceOrdersPage />} />
