@@ -586,8 +586,18 @@ export async function fetchNominaSemanal(): Promise<NominaSemanalRow[]> {
 
 export async function updateNominaSemanalRow(
   id: string,
-  patch: Partial<NominaSemanalRow>,
+  patch: Record<string, unknown>,
 ): Promise<void> {
   const { error } = await supabase.from('nomina_semanal').update(patch).eq('id', id);
+  if (error) throw error;
+}
+
+export async function createNominaSemanalRow(values: Record<string, unknown>): Promise<void> {
+  const { error } = await supabase.from('nomina_semanal').insert(values);
+  if (error) throw error;
+}
+
+export async function deleteNominaSemanalRow(id: string): Promise<void> {
+  const { error } = await supabase.from('nomina_semanal').delete().eq('id', id);
   if (error) throw error;
 }

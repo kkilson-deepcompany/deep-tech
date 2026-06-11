@@ -1,8 +1,13 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { CalendarDays, Download } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CalendarDays, Download, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { fetchNominaSemanal } from '@/lib/queries';
+import {
+  createNominaSemanalRow,
+  deleteNominaSemanalRow,
+  fetchNominaSemanal,
+  updateNominaSemanalRow,
+} from '@/lib/queries';
 import { formatMoney, round2, type NominaSemanalRow } from '@/lib/domain';
 import { generarPagoSemanalPdf } from '@/lib/pago-semanal-pdf';
 import { PageHeader } from '@/components/page-header';
@@ -11,6 +16,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { useDialog } from '@/lib/dialog-service';
+import { cn } from '@/lib/utils';
 
 const SEMANAS = [1, 2, 3, 4] as const;
 const SEMANA_LABEL: Record<number, string> = {
@@ -21,37 +35,45 @@ const SEMANA_LABEL: Record<number, string> = {
 };
 
 const montoSemana = (r: NominaSemanalRow, n: number): number =>
-  Number(
-    n === 1 ? r.semana1 : n === 2 ? r.semana2 : n === 3 ? r.semana3 : r.semana4,
-  ) || 0;
+  Number(n === 1 ? r.semana1 : n === 2 ? r.semana2 : n === 3 ? r.semana3 : r.semana4) || 0;
+
+type Tab = 'plan' | 'generar';
 
 export function PagoSemanalPage() {
+  const qc = useQueryClient();
+  const dialog = useDialog();
   const { data, isLoading } = useQuery({ queryKey: ['nomina_semanal'], queryFn: fetchNominaSemanal });
   const rows = useMemo(() => data ?? [], [data]);
+
+  const [tab, setTab] = useState<Tab>('plan');
+  const [editing, setEditing] = useState<NominaSemanalRow | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const [semana, setSemana] = useState(1);
   const [tasa, setTasa] = useState('');
   const [fecha, setFecha] = useState('');
   const [excluidos, setExcluidos] = useState<Set<string>>(new Set());
 
-  // Filas con monto > 0 en la semana elegida.
-  const filasSemana = useMemo(
-    () => rows.filter((r) => montoSemana(r, semana) > 0),
-    [rows, semana],
+  const totalesSemana = useMemo(
+    () => SEMANAS.map((n) => round2(rows.reduce((s, r) => s + montoSemana(r, n), 0))),
+    [rows],
   );
+  const totalMes = round2(totalesSemana.reduce((s, n) => s + n, 0));
 
+  const filasSemana = useMemo(() => rows.filter((r) => montoSemana(r, semana) > 0), [rows, semana]);
   const tasaNum = Number(tasa) || 0;
   const seleccion = filasSemana.filter((r) => !excluidos.has(r.id));
   const totalUsd = round2(seleccion.reduce((s, r) => s + montoSemana(r, semana), 0));
   const totalBs = round2(totalUsd * tasaNum);
 
-  // Consolidado de las 4 semanas (referencia).
-  const totalesSemana = useMemo(
-    () =>
-      SEMANAS.map((n) => round2(rows.reduce((s, r) => s + montoSemana(r, n), 0))),
-    [rows],
-  );
-  const totalMes = round2(totalesSemana.reduce((s, n) => s + n, 0));
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteNominaSemanalRow(id),
+    onSuccess: () => {
+      toast.success('Fila eliminada.');
+      void qc.invalidateQueries({ queryKey: ['nomina_semanal'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   function toggle(id: string) {
     setExcluidos((prev) => {
@@ -63,39 +85,46 @@ export function PagoSemanalPage() {
   }
 
   async function descargar() {
-    if (tasaNum <= 0) {
-      toast.error('Ingresa una tasa BCV mayor que 0.');
-      return;
-    }
-    if (seleccion.length === 0) {
-      toast.error('Selecciona al menos un colaborador.');
-      return;
-    }
+    if (tasaNum <= 0) return toast.error('Ingresa una tasa BCV mayor que 0.');
+    if (seleccion.length === 0) return toast.error('Selecciona al menos un colaborador.');
     try {
       await generarPagoSemanalPdf({
         semana,
         fecha,
         tasaBcv: tasaNum,
+        empresa: 'Deepcompany',
         lineas: seleccion.map((r) => {
           const usd = montoSemana(r, semana);
           return { empleado: r.empleado, rol: r.rol, montoUsd: usd, montoBs: round2(usd * tasaNum) };
         }),
-        empresa: 'Deepcompany',
       });
     } catch {
       toast.error('No se pudo generar el PDF.');
     }
   }
 
+  const TABS: [Tab, string][] = [
+    ['plan', 'Plan (editable)'],
+    ['generar', 'Generar pago'],
+  ];
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
         eyebrow="Finanzas"
         title="Pago Semanal"
-        description="Reparte la nómina mensual en cortes semanales (martes). Elige la semana, los colaboradores y la tasa BCV para obtener los montos en bolívares y descargar el PDF."
+        description="Edita el plan (nombres, roles y montos por semana), elige la semana y la tasa BCV, y descarga el PDF con los montos en bolívares."
+        action={
+          tab === 'plan' ? (
+            <Button onClick={() => setCreating(true)}>
+              <Plus />
+              Agregar fila
+            </Button>
+          ) : undefined
+        }
       />
 
-      {/* Consolidado de referencia */}
+      {/* Consolidado */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         {SEMANAS.map((n, i) => (
           <Card key={n}>
@@ -113,125 +142,345 @@ export function PagoSemanalPage() {
         </Card>
       </div>
 
-      {/* Controles */}
-      <Card>
-        <CardContent className="grid gap-4 p-4 sm:grid-cols-3">
-          <label className="text-sm">
-            Semana
-            <Select value={String(semana)} onChange={(e) => { setSemana(Number(e.target.value)); setExcluidos(new Set()); }}>
-              {SEMANAS.map((n) => (
-                <option key={n} value={n}>
-                  {SEMANA_LABEL[n]}
-                </option>
-              ))}
-            </Select>
-          </label>
-          <label className="text-sm">
-            Fecha de pago (martes)
-            <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
-          </label>
-          <label className="text-sm">
-            Tasa BCV (Bs/USD)
-            <Input
-              type="number"
-              min="0"
-              step="0.0001"
-              placeholder="Ej. 570.50"
-              value={tasa}
-              onChange={(e) => setTasa(e.target.value)}
-            />
-          </label>
-        </CardContent>
-      </Card>
+      <div className="bg-muted/50 flex w-fit gap-1 rounded-md border p-1">
+        {TABS.map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setTab(id)}
+            className={cn(
+              'rounded px-3 py-1.5 text-sm font-medium transition-colors',
+              tab === id ? 'bg-card shadow-sm' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
-      {/* Tabla de la semana */}
       {isLoading ? (
-        <Skeleton className="h-80 w-full" />
-      ) : (
+        <Skeleton className="h-96 w-full" />
+      ) : tab === 'plan' ? (
+        /* ── Plan editable ──────────────────────────────────────────────── */
         <Card>
-          <CardContent className="p-0">
+          <CardContent className="overflow-x-auto p-0">
             <table className="w-full text-sm">
               <thead className="text-muted-foreground border-b text-left text-xs uppercase tracking-wide">
                 <tr>
-                  <th className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      className="accent-primary size-4"
-                      checked={seleccion.length === filasSemana.length && filasSemana.length > 0}
-                      onChange={(e) =>
-                        setExcluidos(e.target.checked ? new Set() : new Set(filasSemana.map((r) => r.id)))
-                      }
-                    />
-                  </th>
-                  <th className="px-4 py-3">Empleado</th>
-                  <th className="px-4 py-3">Rol</th>
-                  <th className="px-4 py-3 text-right">USD</th>
-                  <th className="px-4 py-3 text-right">Bs</th>
+                  <th className="px-3 py-3">Empleado / Rol</th>
+                  <th className="px-3 py-3 text-right">Mensual</th>
+                  <th className="px-3 py-3 text-right">Sem 1</th>
+                  <th className="px-3 py-3 text-right">Sem 2</th>
+                  <th className="px-3 py-3 text-right">Sem 3</th>
+                  <th className="px-3 py-3 text-right">Sem 4</th>
+                  <th className="px-3 py-3"></th>
                 </tr>
               </thead>
               <tbody>
-                {filasSemana.map((r) => {
-                  const usd = montoSemana(r, semana);
-                  const incluido = !excluidos.has(r.id);
-                  return (
-                    <tr key={r.id} className={`border-b last:border-0 ${incluido ? '' : 'opacity-40'}`}>
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          className="accent-primary size-4"
-                          checked={incluido}
-                          onChange={() => toggle(r.id)}
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="font-medium">{r.empleado}</div>
-                        <div className="text-muted-foreground text-xs">{r.departamento}</div>
-                      </td>
-                      <td className="text-muted-foreground px-4 py-3">{r.rol}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">${formatMoney(usd)}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">
-                        {tasaNum > 0 ? formatMoney(round2(usd * tasaNum)) : '—'}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {filasSemana.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="text-muted-foreground px-4 py-10 text-center">
-                      No hay colaboradores con pago en esta semana.
+                {rows.map((r) => (
+                  <tr key={r.id} className="border-b last:border-0">
+                    <td className="px-3 py-2.5">
+                      <div className="font-medium">{r.empleado}</div>
+                      <div className="text-muted-foreground text-xs">
+                        {r.rol}
+                        {r.departamento ? ` · ${r.departamento}` : ''}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(r.monto_mensual)}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{cell(r.semana1)}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{cell(r.semana2)}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{cell(r.semana3)}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{cell(r.semana4)}</td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex justify-end gap-1">
+                        <Button size="sm" variant="outline" onClick={() => setEditing(r)}>
+                          <Pencil className="size-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive"
+                          onClick={async () => {
+                            if (await dialog.confirm({ description: `¿Eliminar a ${r.empleado}?`, tone: 'destructive' }))
+                              remove.mutate(r.id);
+                          }}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
-                )}
+                ))}
               </tbody>
-              {filasSemana.length > 0 && (
-                <tfoot className="border-t font-semibold">
-                  <tr>
-                    <td className="px-4 py-3" />
-                    <td className="px-4 py-3" colSpan={2}>
-                      Total seleccionado ({seleccion.length})
+              <tfoot className="border-t font-semibold">
+                <tr>
+                  <td className="px-3 py-3">Totales</td>
+                  <td className="px-3 py-3 text-right tabular-nums">${formatMoney(totalMes)}</td>
+                  {SEMANAS.map((n, i) => (
+                    <td key={n} className="px-3 py-3 text-right tabular-nums">
+                      ${formatMoney(totalesSemana[i])}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(totalUsd)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">
-                      {tasaNum > 0 ? `Bs ${formatMoney(totalBs)}` : '—'}
-                    </td>
-                  </tr>
-                </tfoot>
-              )}
+                  ))}
+                  <td />
+                </tr>
+              </tfoot>
             </table>
           </CardContent>
         </Card>
+      ) : (
+        /* ── Generar pago ───────────────────────────────────────────────── */
+        <>
+          <Card>
+            <CardContent className="grid gap-4 p-4 sm:grid-cols-3">
+              <label className="text-sm">
+                Semana
+                <Select
+                  value={String(semana)}
+                  onChange={(e) => {
+                    setSemana(Number(e.target.value));
+                    setExcluidos(new Set());
+                  }}
+                >
+                  {SEMANAS.map((n) => (
+                    <option key={n} value={n}>
+                      {SEMANA_LABEL[n]}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+              <label className="text-sm">
+                Fecha de pago (martes)
+                <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+              </label>
+              <label className="text-sm">
+                Tasa BCV (Bs/USD)
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.0001"
+                  placeholder="Ej. 570.50"
+                  value={tasa}
+                  onChange={(e) => setTasa(e.target.value)}
+                />
+              </label>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-0">
+              <table className="w-full text-sm">
+                <thead className="text-muted-foreground border-b text-left text-xs uppercase tracking-wide">
+                  <tr>
+                    <th className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        className="accent-primary size-4"
+                        checked={seleccion.length === filasSemana.length && filasSemana.length > 0}
+                        onChange={(e) =>
+                          setExcluidos(e.target.checked ? new Set() : new Set(filasSemana.map((r) => r.id)))
+                        }
+                      />
+                    </th>
+                    <th className="px-4 py-3">Empleado</th>
+                    <th className="px-4 py-3">Rol</th>
+                    <th className="px-4 py-3 text-right">USD</th>
+                    <th className="px-4 py-3 text-right">Bs</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filasSemana.map((r) => {
+                    const usd = montoSemana(r, semana);
+                    const incluido = !excluidos.has(r.id);
+                    return (
+                      <tr key={r.id} className={cn('border-b last:border-0', !incluido && 'opacity-40')}>
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            className="accent-primary size-4"
+                            checked={incluido}
+                            onChange={() => toggle(r.id)}
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-medium">{r.empleado}</div>
+                          <div className="text-muted-foreground text-xs">{r.departamento}</div>
+                        </td>
+                        <td className="text-muted-foreground px-4 py-3">{r.rol}</td>
+                        <td className="px-4 py-3 text-right tabular-nums">${formatMoney(usd)}</td>
+                        <td className="px-4 py-3 text-right tabular-nums">
+                          {tasaNum > 0 ? formatMoney(round2(usd * tasaNum)) : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filasSemana.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="text-muted-foreground px-4 py-10 text-center">
+                        No hay colaboradores con pago en esta semana.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                {filasSemana.length > 0 && (
+                  <tfoot className="border-t font-semibold">
+                    <tr>
+                      <td className="px-4 py-3" />
+                      <td className="px-4 py-3" colSpan={2}>
+                        Total seleccionado ({seleccion.length})
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums">${formatMoney(totalUsd)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">
+                        {tasaNum > 0 ? `Bs ${formatMoney(totalBs)}` : '—'}
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </CardContent>
+          </Card>
+
+          <div className="flex items-center justify-between">
+            <p className="text-muted-foreground text-sm">
+              <CalendarDays className="mr-1 inline size-4" />
+              {SEMANA_LABEL[semana]}
+            </p>
+            <Button onClick={descargar} disabled={tasaNum <= 0 || seleccion.length === 0}>
+              <Download />
+              Descargar PDF
+            </Button>
+          </div>
+        </>
       )}
 
-      <div className="flex items-center justify-between">
-        <p className="text-muted-foreground text-sm">
-          <CalendarDays className="mr-1 inline size-4" />
-          {SEMANA_LABEL[semana]}
-        </p>
-        <Button onClick={descargar} disabled={tasaNum <= 0 || seleccion.length === 0}>
-          <Download />
-          Descargar PDF
-        </Button>
-      </div>
+      {(editing || creating) && (
+        <RowDialog
+          row={editing}
+          onClose={() => {
+            setEditing(null);
+            setCreating(false);
+          }}
+          onSaved={() => {
+            void qc.invalidateQueries({ queryKey: ['nomina_semanal'] });
+            setEditing(null);
+            setCreating(false);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function cell(v: string) {
+  return Number(v) > 0 ? `$${formatMoney(v)}` : '—';
+}
+
+function RowDialog({
+  row,
+  onClose,
+  onSaved,
+}: {
+  row: NominaSemanalRow | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const isEdit = row !== null;
+  const [form, setForm] = useState({
+    empleado: row?.empleado ?? '',
+    rol: row?.rol ?? '',
+    departamento: row?.departamento ?? '',
+    estado: row?.estado ?? 'Activo',
+    monto_mensual: row?.monto_mensual ?? '0',
+    semana1: row?.semana1 ?? '0',
+    semana2: row?.semana2 ?? '0',
+    semana3: row?.semana3 ?? '0',
+    semana4: row?.semana4 ?? '0',
+  });
+  const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        empleado: form.empleado.trim(),
+        rol: form.rol.trim() || null,
+        departamento: form.departamento.trim() || null,
+        estado: form.estado,
+        monto_mensual: Number(form.monto_mensual) || 0,
+        semana1: Number(form.semana1) || 0,
+        semana2: Number(form.semana2) || 0,
+        semana3: Number(form.semana3) || 0,
+        semana4: Number(form.semana4) || 0,
+      };
+      if (isEdit && row) await updateNominaSemanalRow(row.id, payload);
+      else await createNominaSemanalRow(payload);
+    },
+    onSuccess: () => {
+      toast.success(isEdit ? 'Fila actualizada.' : 'Fila agregada.');
+      onSaved();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar fila' : 'Agregar fila'}</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-sm sm:col-span-2">
+            Empleado
+            <Input value={form.empleado} onChange={(e) => set('empleado', e.target.value)} />
+          </label>
+          <label className="text-sm">
+            Rol
+            <Input value={form.rol} onChange={(e) => set('rol', e.target.value)} />
+          </label>
+          <label className="text-sm">
+            Departamento
+            <Input value={form.departamento} onChange={(e) => set('departamento', e.target.value)} />
+          </label>
+          <label className="text-sm">
+            Estado
+            <Select value={form.estado} onChange={(e) => set('estado', e.target.value)}>
+              <option>Activo</option>
+              <option>En Prueba</option>
+              <option>A contratar</option>
+              <option>Vacante</option>
+              <option>Inactivo</option>
+            </Select>
+          </label>
+          <label className="text-sm">
+            Monto mensual (USD)
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.monto_mensual}
+              onChange={(e) => set('monto_mensual', e.target.value)}
+            />
+          </label>
+          {SEMANAS.map((n) => (
+            <label key={n} className="text-sm">
+              Semana {n} (USD)
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form[`semana${n}` as keyof typeof form]}
+                onChange={(e) => set(`semana${n}` as keyof typeof form, e.target.value)}
+              />
+            </label>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={() => save.mutate()} disabled={save.isPending || !form.empleado.trim()}>
+            Guardar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
