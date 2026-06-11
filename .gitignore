@@ -102,3 +102,5 @@ credentials.json
 # Consulting Agreement PDFs generados (muestras / descargas de prueba)
 Consulting-Agreement-MUESTRA.pdf
 apps/web/consulting-agreement-*.pdf
+apps/web/pago-semanal-*.pdf
+pago-semanal-*.pdf
