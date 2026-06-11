@@ -3,18 +3,20 @@ import { round2 } from '@/lib/domain';
 export interface DeduccionLinea {
   empleado: string;
   rol: string | null;
-  paquete: number;
-  salarioNormal: number;
-  aliqUtilidades: number;
-  aliqVacaciones: number;
-  retencionPrestaciones: number;
+  compensacionGlobal: number;
+  salarioMinimoUsd: number;
   cestaticket: number;
-  efectivoEmpleado: number;
+  totalLocal: number;
+  deltaOffshore: number;
+  deduccionesLegales: number;
+  fideicomiso1Legal: number;
+  fideicomiso2Incentivo: number;
 }
 
 export interface DeduccionesData {
   fecha: string;
   tasaBcv: number;
+  salarioMinimoBs: number;
   lineas: DeduccionLinea[];
   empresa?: string;
 }
@@ -29,29 +31,30 @@ function formatFecha(iso: string): string {
 }
 
 /**
- * PDF de nómina CON deducciones (LOTTT, desglose Top-Down). Muestra por
- * colaborador el paquete, el salario normal, las alícuotas retenidas a
- * fideicomiso, el cestaticket y el efectivo a pagar (USD y Bs).
+ * PDF de nómina híbrida (Baseline Mínimo Legal + Delta Offshore). Por colaborador
+ * muestra la compensación global, el baseline local (salario mínimo + cestaticket),
+ * el delta a Delaware (Consulting Fees), las deducciones de ley y los fideicomisos.
  */
 export async function generarDeduccionesPdf(data: DeduccionesData): Promise<void> {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
-  const mX = 36;
+  const mX = 32;
   const maxW = pageW - mX * 2;
-  let y = 48;
+  let y = 46;
 
-  const t = (k: keyof DeduccionLinea) =>
+  const sum = (k: keyof DeduccionLinea) =>
     round2(data.lineas.reduce((s, l) => s + (Number(l[k]) || 0), 0));
-  const totPaquete = t('paquete');
-  const totNormal = t('salarioNormal');
-  const totUtil = t('aliqUtilidades');
-  const totVac = t('aliqVacaciones');
-  const totRet = t('retencionPrestaciones');
-  const totCesta = t('cestaticket');
-  const totEfec = t('efectivoEmpleado');
-  const totEfecBs = round2(totEfec * data.tasaBcv);
+  const totGlobal = sum('compensacionGlobal');
+  const totMin = sum('salarioMinimoUsd');
+  const totCesta = sum('cestaticket');
+  const totLocal = sum('totalLocal');
+  const totDelta = sum('deltaOffshore');
+  const totDeduc = sum('deduccionesLegales');
+  const totFid1 = sum('fideicomiso1Legal');
+  const totFid2 = sum('fideicomiso2Incentivo');
+  const totLocalBs = round2(totLocal * data.tasaBcv);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
@@ -60,33 +63,40 @@ export async function generarDeduccionesPdf(data: DeduccionesData): Promise<void
   doc.setTextColor(0);
   doc.setFontSize(11);
   y += 18;
-  doc.text('Nómina con deducciones (LOTTT · desglose Top-Down)', mX, y);
+  doc.text('Nómina híbrida · Baseline Mínimo Legal + Delta Offshore', mX, y);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   y += 14;
   doc.text(`Fecha: ${formatFecha(data.fecha)}`, mX, y);
-  doc.text(`Tasa BCV: ${fmt(data.tasaBcv, 4)} Bs/USD`, pageW - mX, y, { align: 'right' });
+  doc.text(
+    `Salario mínimo: ${fmt(data.salarioMinimoBs)} Bs · Tasa BCV: ${fmt(data.tasaBcv, 4)} Bs/USD`,
+    pageW - mX,
+    y,
+    { align: 'right' },
+  );
   y += 14;
 
   const headers = [
     'Empleado',
-    'Paquete',
-    'Sal. Normal',
-    'Alíc Util',
-    'Alíc Vac',
-    'Retención',
+    'Comp. Global',
+    'Sal. Mín USD',
     'Cestaticket',
-    'Efectivo USD',
-    'Efectivo Bs',
+    'Total Local',
+    'Delta Delaware',
+    'Deducc. Ley',
+    'Fideic. Legal',
+    'Fideic. Incentivo',
+    'Local Bs',
   ];
-  const w = [maxW - 8 * 78, 78, 78, 78, 78, 78, 78, 78, 78];
+  const colN = headers.length - 1;
+  const numW = 74;
+  const w = [maxW - colN * numW, ...Array(colN).fill(numW)];
   const xs: number[] = [];
   let acc = mX;
   for (const cw of w) {
     xs.push(acc);
     acc += cw;
   }
-  const aligns: ('left' | 'right')[] = ['left', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'right'];
 
   function row(cells: string[], opts: { bold?: boolean; fill?: boolean } = {}) {
     const rowH = 16;
@@ -98,13 +108,13 @@ export async function generarDeduccionesPdf(data: DeduccionesData): Promise<void
       doc.setTextColor(0);
     }
     doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
-    doc.setFontSize(8.5);
+    doc.setFontSize(8);
     cells.forEach((c, i) => {
       const cw = w[i] ?? 60;
-      const a = aligns[i] ?? 'left';
-      const tx = a === 'right' ? (xs[i] ?? mX) + cw - 4 : (xs[i] ?? mX) + 4;
+      const right = i > 0;
+      const tx = right ? (xs[i] ?? mX) + cw - 4 : (xs[i] ?? mX) + 4;
       const line = (doc.splitTextToSize(c, cw - 6) as string[])[0] ?? '';
-      doc.text(line, tx, y, { align: a });
+      doc.text(line, tx, y, { align: right ? 'right' : 'left' });
     });
     y += rowH;
   }
@@ -113,7 +123,7 @@ export async function generarDeduccionesPdf(data: DeduccionesData): Promise<void
   data.lineas.forEach((l) => {
     if (y > pageH - 70) {
       doc.addPage();
-      y = 48;
+      y = 46;
       row(headers, { bold: true, fill: true });
     }
     doc.setDrawColor(228);
@@ -121,14 +131,15 @@ export async function generarDeduccionesPdf(data: DeduccionesData): Promise<void
     doc.line(mX, y + 3, mX + maxW, y + 3);
     row([
       l.empleado,
-      fmt(l.paquete),
-      fmt(l.salarioNormal),
-      fmt(l.aliqUtilidades),
-      fmt(l.aliqVacaciones),
-      fmt(l.retencionPrestaciones),
+      fmt(l.compensacionGlobal),
+      fmt(l.salarioMinimoUsd),
       fmt(l.cestaticket),
-      fmt(l.efectivoEmpleado),
-      fmt(round2(l.efectivoEmpleado * data.tasaBcv)),
+      fmt(l.totalLocal),
+      fmt(l.deltaOffshore),
+      fmt(l.deduccionesLegales),
+      fmt(l.fideicomiso1Legal),
+      fmt(l.fideicomiso2Incentivo),
+      fmt(round2(l.totalLocal * data.tasaBcv)),
     ]);
   });
 
@@ -139,34 +150,35 @@ export async function generarDeduccionesPdf(data: DeduccionesData): Promise<void
   row(
     [
       'TOTALES',
-      fmt(totPaquete),
-      fmt(totNormal),
-      fmt(totUtil),
-      fmt(totVac),
-      fmt(totRet),
+      fmt(totGlobal),
+      fmt(totMin),
       fmt(totCesta),
-      fmt(totEfec),
-      fmt(totEfecBs),
+      fmt(totLocal),
+      fmt(totDelta),
+      fmt(totDeduc),
+      fmt(totFid1),
+      fmt(totFid2),
+      fmt(totLocalBs),
     ],
     { bold: true },
   );
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(120);
-  y += 10;
+  y += 12;
   doc.text(
-    'Salario normal = Paquete ÷ 1.125. Alícuotas (utilidades 30/360 + vacacional 15/360) = retención a fideicomiso de prestaciones.',
+    'Baseline local = salario mínimo (Bs→USD por BCV) + cestaticket $40. Delta Delaware = Compensación Global − Total Local (International Consulting Fees, contrato LLC).',
     mX,
     y,
   );
-  y += 11;
+  y += 10;
   doc.text(
-    `Cestaticket socialista ($${fmt(totCesta / Math.max(1, data.lineas.length))} c/u) no salarial (Art. 105 LOTTT). Retención total a fideicomiso: $${fmt(totRet)} · Efectivo total: Bs ${fmt(totEfecBs)}.`,
+    `Deducciones de ley (IVSS 4% + FAOV 1% + Paro 0.5%) solo sobre el salario mínimo. Fideicomiso incentivo = % de la compensación global ("Plan Co-Invertido"). Total a pagar localmente: Bs ${fmt(totLocalBs)}.`,
     mX,
     y,
   );
   doc.setTextColor(0);
 
-  doc.save(`nomina-deducciones-${data.fecha || 'sin-fecha'}.pdf`);
+  doc.save(`nomina-delta-${data.fecha || 'sin-fecha'}.pdf`);
 }

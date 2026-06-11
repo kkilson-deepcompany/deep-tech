@@ -1,5 +1,38 @@
 import { describe, expect, it } from 'vitest';
-import { CESTATICKET_USD, FACTOR_INTEGRAL, desglosarPaqueteVE } from './nomina-ve';
+import {
+  CESTATICKET_USD,
+  FACTOR_INTEGRAL,
+  desglosarDeltaOffshore,
+  desglosarPaqueteVE,
+} from './nomina-ve';
+
+describe('desglosarDeltaOffshore (Baseline + Delta)', () => {
+  it('caso del spec: $1000 con 130 Bs a tasa 36.111 → local $43.60, delta $956.40', () => {
+    const tasa = 130 / 3.6; // ≈ 36.111 para que el mínimo sea $3.60
+    const d = desglosarDeltaOffshore({ compensacionGlobalUsd: 1000, tasaBcv: tasa });
+    expect(d.salarioMinimoUsd).toBeCloseTo(3.6, 2);
+    expect(d.cestaticket).toBe(40);
+    expect(d.totalLocal).toBeCloseTo(43.6, 2);
+    expect(d.deltaOffshore).toBeCloseTo(956.4, 2);
+  });
+
+  it('deducciones legales se calculan solo sobre el salario mínimo (centavos)', () => {
+    const d = desglosarDeltaOffshore({ compensacionGlobalUsd: 1000, tasaBcv: 130 / 3.6 });
+    expect(d.deduccionIvss).toBeCloseTo(0.14, 2); // 4% de 3.60
+    expect(d.deduccionesLegales).toBeCloseTo(0.2, 1); // 5.5% de 3.60 ≈ 0.198
+  });
+
+  it('fideicomiso 2 es % de la compensación global', () => {
+    const d = desglosarDeltaOffshore({ compensacionGlobalUsd: 1000, tasaBcv: 130 / 3.6, fideicomiso2Pct: 10 });
+    expect(d.fideicomiso2Incentivo).toBe(100);
+  });
+
+  it('sin tasa el salario mínimo en USD es 0', () => {
+    const d = desglosarDeltaOffshore({ compensacionGlobalUsd: 1000, tasaBcv: 0 });
+    expect(d.salarioMinimoUsd).toBe(0);
+    expect(d.deltaOffshore).toBeCloseTo(960, 2); // 1000 - 40 cestaticket
+  });
+});
 
 describe('desglosarPaqueteVE (LOTTT Top-Down)', () => {
   it('factor integral es 1.125', () => {

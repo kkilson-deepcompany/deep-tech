@@ -63,3 +63,86 @@ export function desglosarPaqueteVE(paqueteMetaUsd: number, cestaticket = CESTATI
 export function aBolivares(usd: number, tasaBcv: number): number {
   return round2((usd || 0) * (tasaBcv || 0));
 }
+
+// ============================================================================
+// Modelo "Baseline Mínimo Legal + Delta Offshore" (SRS 11-jun-2026).
+// El admin ingresa la Compensación Global; el sistema aísla el baseline legal
+// venezolano (salario mínimo en Bs→USD por BCV + cestaticket) y el resto (Delta)
+// va al contrato de Delaware. Las deducciones de ley aplican solo sobre el
+// salario mínimo, minimizando la carga parafiscal.
+// ============================================================================
+
+export const SALARIO_MINIMO_BS_DEFAULT = 130;
+export const FIDEICOMISO2_PCT_DEFAULT = 10; // 8–10% de la compensación global
+export const DEDUCCION_IVSS_PCT = 4;
+export const DEDUCCION_FAOV_PCT = 1;
+export const DEDUCCION_PARO_PCT = 0.5; // Paro Forzoso / SPF
+
+export interface DeltaOffshore {
+  compensacionGlobal: number;
+  salarioMinimoBs: number;
+  /** Salario mínimo convertido a USD (mínimo / tasa BCV). */
+  salarioMinimoUsd: number;
+  cestaticket: number;
+  /** Total asignación local = salario mínimo USD + cestaticket. */
+  totalLocal: number;
+  /** Delta offshore (Delaware) = compensación global − total local. */
+  deltaOffshore: number;
+  deduccionIvss: number;
+  deduccionFaov: number;
+  deduccionParo: number;
+  /** Total deducciones legales del empleado (sobre el salario mínimo). */
+  deduccionesLegales: number;
+  /** Neto local = salario mínimo USD − deducciones legales. */
+  netoLocal: number;
+  /** Fideicomiso 1 legal (Art. 142): provisión mensual sobre el mínimo (USD). */
+  fideicomiso1Legal: number;
+  /** Fideicomiso 2 incentivo: % de la compensación global (Plan Co-Invertido). */
+  fideicomiso2Incentivo: number;
+}
+
+/** Desglosa la Compensación Global con el modelo Baseline + Delta Offshore. */
+export function desglosarDeltaOffshore(args: {
+  compensacionGlobalUsd: number;
+  tasaBcv: number;
+  salarioMinimoBs?: number;
+  cestaticket?: number;
+  fideicomiso2Pct?: number;
+}): DeltaOffshore {
+  const compensacionGlobal = Math.max(0, args.compensacionGlobalUsd || 0);
+  const tasa = args.tasaBcv || 0;
+  const salarioMinimoBs = args.salarioMinimoBs ?? SALARIO_MINIMO_BS_DEFAULT;
+  const cestaticket = args.cestaticket ?? CESTATICKET_USD;
+  const fid2Pct = args.fideicomiso2Pct ?? FIDEICOMISO2_PCT_DEFAULT;
+
+  const salarioMinimoUsd = tasa > 0 ? round2(salarioMinimoBs / tasa) : 0;
+  const totalLocal = round2(salarioMinimoUsd + cestaticket);
+  const deltaOffshore = round2(compensacionGlobal - totalLocal);
+
+  const deduccionIvss = round2(salarioMinimoUsd * (DEDUCCION_IVSS_PCT / 100));
+  const deduccionFaov = round2(salarioMinimoUsd * (DEDUCCION_FAOV_PCT / 100));
+  const deduccionParo = round2(salarioMinimoUsd * (DEDUCCION_PARO_PCT / 100));
+  const deduccionesLegales = round2(deduccionIvss + deduccionFaov + deduccionParo);
+
+  // Fideicomiso 1 legal: 15 días de salario integral por trimestre sobre el
+  // mínimo → provisión mensual = 5 días de salario integral diario.
+  const salarioIntegralDiario = (salarioMinimoUsd * FACTOR_INTEGRAL) / 30;
+  const fideicomiso1Legal = round2(salarioIntegralDiario * 5);
+  const fideicomiso2Incentivo = round2(compensacionGlobal * (fid2Pct / 100));
+
+  return {
+    compensacionGlobal: round2(compensacionGlobal),
+    salarioMinimoBs,
+    salarioMinimoUsd,
+    cestaticket,
+    totalLocal,
+    deltaOffshore,
+    deduccionIvss,
+    deduccionFaov,
+    deduccionParo,
+    deduccionesLegales,
+    netoLocal: round2(salarioMinimoUsd - deduccionesLegales),
+    fideicomiso1Legal,
+    fideicomiso2Incentivo,
+  };
+}

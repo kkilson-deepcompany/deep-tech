@@ -9,7 +9,12 @@ import {
   updateNominaSemanalRow,
 } from '@/lib/queries';
 import { formatMoney, round2, type NominaSemanalRow } from '@/lib/domain';
-import { CESTATICKET_USD, desglosarPaqueteVE } from '@/lib/nomina-ve';
+import {
+  CESTATICKET_USD,
+  FIDEICOMISO2_PCT_DEFAULT,
+  SALARIO_MINIMO_BS_DEFAULT,
+  desglosarDeltaOffshore,
+} from '@/lib/nomina-ve';
 import { generarPagoSemanalPdf } from '@/lib/pago-semanal-pdf';
 import { generarDeduccionesPdf } from '@/lib/pago-semanal-deducciones-pdf';
 import { PageHeader } from '@/components/page-header';
@@ -55,6 +60,9 @@ export function PagoSemanalPage() {
   const [tasa, setTasa] = useState('');
   const [fecha, setFecha] = useState('');
   const [excluidos, setExcluidos] = useState<Set<string>>(new Set());
+  // Parámetros del modelo Delta Offshore (baseline legal).
+  const [salarioMinBs, setSalarioMinBs] = useState(String(SALARIO_MINIMO_BS_DEFAULT));
+  const [fid2Pct, setFid2Pct] = useState(String(FIDEICOMISO2_PCT_DEFAULT));
 
   const totalesSemana = useMemo(
     () => SEMANAS.map((n) => round2(rows.reduce((s, r) => s + montoSemana(r, n), 0))),
@@ -92,17 +100,19 @@ export function PagoSemanalPage() {
       await generarDeduccionesPdf({
         fecha,
         tasaBcv: tasaNum,
+        salarioMinimoBs: minBs,
         empresa: 'Deepcompany',
         lineas: desgloses.map(({ row, d }) => ({
           empleado: row.empleado,
           rol: row.rol,
-          paquete: d.paquete,
-          salarioNormal: d.salarioNormal,
-          aliqUtilidades: d.aliqUtilidades,
-          aliqVacaciones: d.aliqVacaciones,
-          retencionPrestaciones: d.retencionPrestaciones,
+          compensacionGlobal: d.compensacionGlobal,
+          salarioMinimoUsd: d.salarioMinimoUsd,
           cestaticket: d.cestaticket,
-          efectivoEmpleado: d.efectivoEmpleado,
+          totalLocal: d.totalLocal,
+          deltaOffshore: d.deltaOffshore,
+          deduccionesLegales: d.deduccionesLegales,
+          fideicomiso1Legal: d.fideicomiso1Legal,
+          fideicomiso2Incentivo: d.fideicomiso2Incentivo,
         })),
       });
     } catch {
@@ -135,24 +145,36 @@ export function PagoSemanalPage() {
     ['deducciones', 'Deducciones (LOTTT)'],
   ];
 
-  // Desglose inverso (Top-Down) por colaborador sobre el monto mensual (paquete meta).
+  // Modelo Baseline + Delta Offshore por colaborador (monto mensual = compensación global).
+  const minBs = Number(salarioMinBs) || SALARIO_MINIMO_BS_DEFAULT;
+  const fid2 = Number(fid2Pct) || 0;
   const desgloses = useMemo(
-    () => rows.map((r) => ({ row: r, d: desglosarPaqueteVE(Number(r.monto_mensual) || 0) })),
-    [rows],
+    () =>
+      rows.map((r) => ({
+        row: r,
+        d: desglosarDeltaOffshore({
+          compensacionGlobalUsd: Number(r.monto_mensual) || 0,
+          tasaBcv: tasaNum,
+          salarioMinimoBs: minBs,
+          fideicomiso2Pct: fid2,
+        }),
+      })),
+    [rows, tasaNum, minBs, fid2],
   );
   const totDes = useMemo(
     () =>
       desgloses.reduce(
         (a, { d }) => ({
-          paquete: a.paquete + d.paquete,
-          normal: a.normal + d.salarioNormal,
-          util: a.util + d.aliqUtilidades,
-          vac: a.vac + d.aliqVacaciones,
-          ret: a.ret + d.retencionPrestaciones,
+          global: a.global + d.compensacionGlobal,
+          minUsd: a.minUsd + d.salarioMinimoUsd,
           cesta: a.cesta + d.cestaticket,
-          costo: a.costo + d.costoTotal,
+          local: a.local + d.totalLocal,
+          delta: a.delta + d.deltaOffshore,
+          deduc: a.deduc + d.deduccionesLegales,
+          fid1: a.fid1 + d.fideicomiso1Legal,
+          fid2: a.fid2 + d.fideicomiso2Incentivo,
         }),
-        { paquete: 0, normal: 0, util: 0, vac: 0, ret: 0, cesta: 0, costo: 0 },
+        { global: 0, minUsd: 0, cesta: 0, local: 0, delta: 0, deduc: 0, fid1: 0, fid2: 0 },
       ),
     [desgloses],
   );
@@ -400,14 +422,15 @@ export function PagoSemanalPage() {
           </div>
         </>
       ) : (
-        /* ── Deducciones (LOTTT) — desglose inverso Top-Down ───────────────── */
+        /* ── Deducciones — Baseline Mínimo Legal + Delta Offshore ──────────── */
         <>
           <Card>
             <CardContent className="text-muted-foreground p-4 text-sm">
-              Desglose inverso del paquete integral mensual (LOTTT): el salario normal es{' '}
-              <strong>Paquete ÷ 1.125</strong>; las alícuotas de utilidades (30/360) y bono
-              vacacional (15/360) se retienen como provisión a fideicomiso. El cestaticket
-              (${CESTATICKET_USD}) es no salarial y va aparte.
+              Modelo híbrido: el <strong>baseline local</strong> es el salario mínimo (Bs→USD por
+              BCV) + cestaticket (${CESTATICKET_USD}); el resto de la compensación global es el{' '}
+              <strong>Delta</strong> que va al contrato de Delaware (Consulting Fees). Las
+              deducciones de ley (IVSS 4% + FAOV 1% + Paro 0.5%) aplican solo sobre el salario
+              mínimo. Requiere la tasa BCV para convertir el mínimo.
             </CardContent>
           </Card>
           <Card>
@@ -427,25 +450,53 @@ export function PagoSemanalPage() {
                   onChange={(e) => setTasa(e.target.value)}
                 />
               </label>
+              <label className="text-sm">
+                Salario mínimo (Bs)
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={salarioMinBs}
+                  onChange={(e) => setSalarioMinBs(e.target.value)}
+                />
+              </label>
+              <label className="text-sm">
+                Fideicomiso incentivo (%)
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  value={fid2Pct}
+                  onChange={(e) => setFid2Pct(e.target.value)}
+                />
+              </label>
               <Button className="ml-auto" onClick={descargarDeducciones} disabled={tasaNum <= 0}>
                 <Download />
                 PDF con deducciones
               </Button>
             </CardContent>
           </Card>
+          {tasaNum <= 0 && (
+            <Card>
+              <CardContent className="text-amber-700 p-4 text-sm">
+                Ingresa la tasa BCV para calcular el salario mínimo en USD y el delta.
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardContent className="overflow-x-auto p-0">
               <table className="w-full text-sm">
                 <thead className="text-muted-foreground border-b text-left text-xs uppercase tracking-wide">
                   <tr>
                     <th className="px-3 py-3">Empleado</th>
-                    <th className="px-3 py-3 text-right">Paquete</th>
-                    <th className="px-3 py-3 text-right">Salario normal</th>
-                    <th className="px-3 py-3 text-right">Alíc. Util.</th>
-                    <th className="px-3 py-3 text-right">Alíc. Vac.</th>
-                    <th className="px-3 py-3 text-right">Retención</th>
+                    <th className="px-3 py-3 text-right">Comp. Global</th>
+                    <th className="px-3 py-3 text-right">Sal. Mín USD</th>
                     <th className="px-3 py-3 text-right">Cestaticket</th>
-                    <th className="px-3 py-3 text-right">Costo total</th>
+                    <th className="px-3 py-3 text-right">Total Local</th>
+                    <th className="px-3 py-3 text-right">Delta Delaware</th>
+                    <th className="px-3 py-3 text-right">Deducc. Ley</th>
+                    <th className="px-3 py-3 text-right">Fideic. Incent.</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -455,26 +506,26 @@ export function PagoSemanalPage() {
                         <div className="font-medium">{row.empleado}</div>
                         <div className="text-muted-foreground text-xs">{row.rol}</div>
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.paquete)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.salarioNormal)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.aliqUtilidades)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.aliqVacaciones)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.retencionPrestaciones)}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.compensacionGlobal)}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.salarioMinimoUsd)}</td>
                       <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.cestaticket)}</td>
-                      <td className="px-3 py-2.5 text-right font-medium tabular-nums">${formatMoney(d.costoTotal)}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.totalLocal)}</td>
+                      <td className="px-3 py-2.5 text-right font-medium tabular-nums">${formatMoney(d.deltaOffshore)}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.deduccionesLegales)}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums">${formatMoney(d.fideicomiso2Incentivo)}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot className="border-t font-semibold">
                   <tr>
                     <td className="px-3 py-3">Totales</td>
-                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.paquete))}</td>
-                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.normal))}</td>
-                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.util))}</td>
-                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.vac))}</td>
-                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.ret))}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.global))}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.minUsd))}</td>
                     <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.cesta))}</td>
-                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.costo))}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.local))}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.delta))}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.deduc))}</td>
+                    <td className="px-3 py-3 text-right tabular-nums">${formatMoney(round2(totDes.fid2))}</td>
                   </tr>
                 </tfoot>
               </table>
