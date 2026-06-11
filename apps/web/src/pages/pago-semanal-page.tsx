@@ -11,6 +11,7 @@ import {
 import { formatMoney, round2, type NominaSemanalRow } from '@/lib/domain';
 import { CESTATICKET_USD, desglosarPaqueteVE } from '@/lib/nomina-ve';
 import { generarPagoSemanalPdf } from '@/lib/pago-semanal-pdf';
+import { generarDeduccionesPdf } from '@/lib/pago-semanal-deducciones-pdf';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -83,6 +84,30 @@ export function PagoSemanalPage() {
       else next.add(id);
       return next;
     });
+  }
+
+  async function descargarDeducciones() {
+    if (tasaNum <= 0) return toast.error('Ingresa una tasa BCV mayor que 0.');
+    try {
+      await generarDeduccionesPdf({
+        fecha,
+        tasaBcv: tasaNum,
+        empresa: 'Deepcompany',
+        lineas: desgloses.map(({ row, d }) => ({
+          empleado: row.empleado,
+          rol: row.rol,
+          paquete: d.paquete,
+          salarioNormal: d.salarioNormal,
+          aliqUtilidades: d.aliqUtilidades,
+          aliqVacaciones: d.aliqVacaciones,
+          retencionPrestaciones: d.retencionPrestaciones,
+          cestaticket: d.cestaticket,
+          efectivoEmpleado: d.efectivoEmpleado,
+        })),
+      });
+    } catch {
+      toast.error('No se pudo generar el PDF de deducciones.');
+    }
   }
 
   async function descargar() {
@@ -383,6 +408,29 @@ export function PagoSemanalPage() {
               <strong>Paquete ÷ 1.125</strong>; las alícuotas de utilidades (30/360) y bono
               vacacional (15/360) se retienen como provisión a fideicomiso. El cestaticket
               (${CESTATICKET_USD}) es no salarial y va aparte.
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-wrap items-end gap-4 p-4">
+              <label className="text-sm">
+                Fecha
+                <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+              </label>
+              <label className="text-sm">
+                Tasa BCV (Bs/USD)
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.0001"
+                  placeholder="Ej. 570.50"
+                  value={tasa}
+                  onChange={(e) => setTasa(e.target.value)}
+                />
+              </label>
+              <Button className="ml-auto" onClick={descargarDeducciones} disabled={tasaNum <= 0}>
+                <Download />
+                PDF con deducciones
+              </Button>
             </CardContent>
           </Card>
           <Card>
