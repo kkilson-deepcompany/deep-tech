@@ -3,7 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import {
   fetchAllBeneficiosColaborador,
   fetchAllPrestamos,
+  fetchBecas,
   fetchColaboradores,
+  fetchColaboradorSeguros,
+  fetchFormaciones,
 } from '@/lib/queries';
 import {
   beneficioAnual,
@@ -33,8 +36,27 @@ export function CostoNominaPage() {
   const colabQ = useQuery({ queryKey: ['colaboradores'], queryFn: fetchColaboradores });
   const benQ = useQuery({ queryKey: ['beneficios_colaborador_all'], queryFn: fetchAllBeneficiosColaborador });
   const preQ = useQuery({ queryKey: ['prestamos_all'], queryFn: fetchAllPrestamos });
+  const segQ = useQuery({ queryKey: ['colaborador_seguros'], queryFn: fetchColaboradorSeguros });
+  const formQ = useQuery({ queryKey: ['formaciones'], queryFn: fetchFormaciones });
+  const becaQ = useQuery({ queryKey: ['becas'], queryFn: fetchBecas });
 
-  const isLoading = colabQ.isLoading || benQ.isLoading || preQ.isLoading;
+  const isLoading =
+    colabQ.isLoading || benQ.isLoading || preQ.isLoading || segQ.isLoading || formQ.isLoading || becaQ.isLoading;
+
+  // Beneficios corporativos (catálogos de las pestañas Seguros/Formaciones/Becas).
+  const corp = useMemo(() => {
+    const segMensual = round2((segQ.data ?? []).reduce((s, r) => s + (Number(r.prima_usd) || 0), 0));
+    const formAnual = round2((formQ.data ?? []).reduce((s, f) => s + (Number(f.costo_usd) || 0), 0));
+    const becaAnual = round2(
+      (becaQ.data ?? []).reduce(
+        (s, b) => s + ((Number(b.monto_usd) || 0) * (Number(b.pct_cubierto) || 0)) / 100,
+        0,
+      ),
+    );
+    const mensual = round2(segMensual + formAnual / 12 + becaAnual / 12);
+    const anual = round2(segMensual * 12 + formAnual + becaAnual);
+    return { segMensual, formAnual, becaAnual, mensual, anual };
+  }, [segQ.data, formQ.data, becaQ.data]);
 
   const data = useMemo(() => {
     const colaboradores = (colabQ.data ?? []).filter((c) => ACTIVOS.has(c.estado));
@@ -108,14 +130,24 @@ export function CostoNominaPage() {
       {isLoading ? (
         <Skeleton className="h-40 w-full" />
       ) : (
+        (() => {
+          const grandMensual = round2(data.nominaMensual + data.benMensual + corp.mensual);
+          const grandAnual = round2(data.nominaMensual * 12 + data.benAnual + corp.anual);
+          return (
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <Kpi label="Nómina mensual" value={`$${formatMoney(data.nominaMensual)}`} />
-            <Kpi label="Beneficios mensual" value={`$${formatMoney(data.benMensual)}`} />
-            <Kpi label="Costo total mensual" value={`$${formatMoney(data.costoMensual)}`} tone="primary" />
+            <Kpi
+              label="Beneficios mensual"
+              value={`$${formatMoney(round2(data.benMensual + corp.mensual))}`}
+            />
+            <Kpi label="Costo total mensual" value={`$${formatMoney(grandMensual)}`} tone="primary" />
             <Kpi label="Nómina anual" value={`$${formatMoney(round2(data.nominaMensual * 12))}`} />
-            <Kpi label="Beneficios anual" value={`$${formatMoney(data.benAnual)}`} />
-            <Kpi label="Costo total anual" value={`$${formatMoney(data.costoAnual)}`} tone="primary" />
+            <Kpi
+              label="Beneficios anual"
+              value={`$${formatMoney(round2(data.benAnual + corp.anual))}`}
+            />
+            <Kpi label="Costo total anual" value={`$${formatMoney(grandAnual)}`} tone="primary" />
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <Kpi label="Colaboradores activos" value={String(data.count)} />
@@ -126,9 +158,58 @@ export function CostoNominaPage() {
             />
             <Kpi
               label="Costo prom. por colaborador / mes"
-              value={`$${formatMoney(data.count ? round2(data.costoMensual / data.count) : 0)}`}
+              value={`$${formatMoney(data.count ? round2(grandMensual / data.count) : 0)}`}
             />
           </div>
+
+          {/* Desglose por tipo de costo */}
+          <Card>
+            <CardContent className="p-0">
+              <table className="w-full text-sm">
+                <thead className="text-muted-foreground border-b text-left text-xs uppercase tracking-wide">
+                  <tr>
+                    <th className="px-4 py-3">Componente</th>
+                    <th className="px-4 py-3 text-right">Mensual</th>
+                    <th className="px-4 py-3 text-right">Anual</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b">
+                    <td className="px-4 py-3">Nómina (compensación)</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(data.nominaMensual)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(round2(data.nominaMensual * 12))}</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="px-4 py-3">Beneficios por colaborador</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(data.benMensual)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(data.benAnual)}</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="px-4 py-3 pl-8">· Seguros (primas)</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(corp.segMensual)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(round2(corp.segMensual * 12))}</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="px-4 py-3 pl-8">· Formaciones</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(round2(corp.formAnual / 12))}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(corp.formAnual)}</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="px-4 py-3 pl-8">· Becas</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(round2(corp.becaAnual / 12))}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(corp.becaAnual)}</td>
+                  </tr>
+                </tbody>
+                <tfoot className="border-t font-semibold">
+                  <tr>
+                    <td className="px-4 py-3">Costo total</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(grandMensual)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(grandAnual)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardContent className="p-0">
@@ -159,6 +240,8 @@ export function CostoNominaPage() {
             </CardContent>
           </Card>
         </>
+          );
+        })()
       )}
     </div>
   );
