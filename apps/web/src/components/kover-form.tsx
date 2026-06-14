@@ -810,8 +810,8 @@ export function KoverForm({
       {/* === SECCIÓN 8 — Documentos === */}
       <Seccion numero={8} titulo="Documentos" abierta={open === 8} onToggle={() => toggle(8)}>
         <p className="rounded-md border border-amber-300 bg-amber-50/50 p-3 text-xs text-amber-900">
-          Resumen de documentos cargados. <strong>Mínimos requeridos:</strong> identificación
-          (cédula) y RIF. Puedes subir un archivo o <strong>tomar una foto</strong>.
+          Resumen de documentos cargados. <strong>Mínimo requerido:</strong> identificación (cédula
+          o pasaporte). Puedes subir un archivo o <strong>tomar una foto</strong>.
         </p>
         {applicationId ? (
           <div className="grid gap-4 sm:grid-cols-2">
@@ -820,45 +820,24 @@ export function KoverForm({
               publicToken={publicToken}
               readOnly={readOnly}
               docType="cedula"
-              label="Cédula de identidad"
+              label="Cédula de identidad o pasaporte"
               accept="application/pdf,image/jpeg,image/png"
               maxSizeBytes={5 * 1024 * 1024}
               maxSizeLabel="5 MB"
               required
               capture
+              multiple
             />
             <KoverFileUpload
               applicationId={applicationId}
               publicToken={publicToken}
               readOnly={readOnly}
               docType="rif"
-              label="RIF"
-              accept="application/pdf,image/jpeg,image/png"
-              maxSizeBytes={5 * 1024 * 1024}
-              maxSizeLabel="5 MB"
-              required
-              capture
-            />
-            <KoverFileUpload
-              applicationId={applicationId}
-              publicToken={publicToken}
-              readOnly={readOnly}
-              docType="pasaporte"
-              label="Pasaporte"
+              label="RIF (opcional)"
               accept="application/pdf,image/jpeg,image/png"
               maxSizeBytes={5 * 1024 * 1024}
               maxSizeLabel="5 MB"
               capture
-            />
-            <KoverFileUpload
-              applicationId={applicationId}
-              publicToken={publicToken}
-              readOnly={readOnly}
-              docType="firma"
-              label="Firma escaneada"
-              accept="image/png,image/jpeg"
-              maxSizeBytes={2 * 1024 * 1024}
-              maxSizeLabel="2 MB"
             />
           </div>
         ) : (
