@@ -361,7 +361,7 @@ export const SEGURO_FRECUENCIA_DIVISOR: Record<SeguroFrecuencia, number> = {
   Anual: 1,
   Semestral: 2,
   Trimestral: 4,
-  Mensual: 10,
+  Mensual: 12,
 };
 
 /** Cuota de la prima según la frecuencia (la prima base es anual). */

@@ -121,9 +121,9 @@ function SegurosSection() {
   return (
     <>
       <CostosResumen
-        mensual={round2(anual / 10)}
+        mensual={round2(anual / 12)}
         anual={anual}
-        nota="Prima anual; cuota mensual = anual ÷ 10"
+        nota="Prima anual; cuota mensual = anual ÷ 12"
       />
       <Card>
         <CardContent className="p-0">
