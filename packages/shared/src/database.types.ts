@@ -71,6 +71,56 @@ export type Database = {
           },
         ]
       }
+      beneficios_colaborador: {
+        Row: {
+          activo: boolean
+          categoria: string
+          colaborador_id: string
+          concepto: string
+          costo_empresa: number
+          created_at: string
+          fecha_fin: string | null
+          fecha_inicio: string | null
+          id: string
+          nota: string | null
+          periodicidad: string
+        }
+        Insert: {
+          activo?: boolean
+          categoria?: string
+          colaborador_id: string
+          concepto: string
+          costo_empresa?: number
+          created_at?: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
+          id?: string
+          nota?: string | null
+          periodicidad?: string
+        }
+        Update: {
+          activo?: boolean
+          categoria?: string
+          colaborador_id?: string
+          concepto?: string
+          costo_empresa?: number
+          created_at?: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
+          id?: string
+          nota?: string | null
+          periodicidad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beneficios_colaborador_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_lines: {
         Row: {
           budget_id: string
@@ -1403,6 +1453,53 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      prestamos: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          descripcion: string | null
+          estado: string
+          fecha_inicio: string | null
+          frecuencia: string
+          id: string
+          meses: number
+          monto: number
+          nota: string | null
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          descripcion?: string | null
+          estado?: string
+          fecha_inicio?: string | null
+          frecuencia?: string
+          id?: string
+          meses?: number
+          monto?: number
+          nota?: string | null
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          descripcion?: string | null
+          estado?: string
+          fecha_inicio?: string | null
+          frecuencia?: string
+          id?: string
+          meses?: number
+          monto?: number
+          nota?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prestamos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {

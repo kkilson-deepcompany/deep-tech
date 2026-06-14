@@ -403,6 +403,72 @@ export interface Beca {
   colaborador?: { nombre: string } | null;
 }
 
+// ── Préstamos corporativos ───────────────────────────────────────────────────
+export const PRESTAMO_FRECUENCIAS = ['mensual', 'quincenal'] as const;
+export type PrestamoFrecuencia = (typeof PRESTAMO_FRECUENCIAS)[number];
+export const PRESTAMO_ESTADOS = ['Activo', 'Pagado', 'Cancelado'] as const;
+
+export interface Prestamo {
+  id: string;
+  colaborador_id: string;
+  descripcion: string | null;
+  monto: string;
+  meses: number;
+  frecuencia: PrestamoFrecuencia;
+  fecha_inicio: string | null;
+  estado: string;
+  nota: string | null;
+  created_at: string;
+}
+
+/** Cuota mensual de un préstamo = monto / meses. */
+export function cuotaMensualPrestamo(p: Prestamo): number {
+  const monto = Number(p.monto) || 0;
+  return p.meses > 0 ? round2(monto / p.meses) : 0;
+}
+/** Cuota por pago: mensual o la mitad si la deducción es quincenal. */
+export function cuotaPorPagoPrestamo(p: Prestamo): number {
+  const m = cuotaMensualPrestamo(p);
+  return p.frecuencia === 'quincenal' ? round2(m / 2) : m;
+}
+
+// ── Beneficios por colaborador (genéricos, con periodicidad) ──────────────────
+export const BENEFICIO_CATEGORIAS = ['Seguro', 'Formacion', 'Licencia', 'Beca', 'Bono', 'Otro'] as const;
+export const BENEFICIO_PERIODICIDADES = ['Mensual', 'Trimestral', 'Semestral', 'Anual', 'Unica'] as const;
+export type BeneficioPeriodicidad = (typeof BENEFICIO_PERIODICIDADES)[number];
+
+export interface BeneficioColaborador {
+  id: string;
+  colaborador_id: string;
+  concepto: string;
+  categoria: string;
+  costo_empresa: string;
+  periodicidad: BeneficioPeriodicidad;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  activo: boolean;
+  nota: string | null;
+  created_at: string;
+}
+
+const PERIODICIDAD_FACTOR: Record<string, number> = {
+  Mensual: 1,
+  Trimestral: 3,
+  Semestral: 6,
+  Anual: 12,
+};
+
+/** Costo mensual normalizado de un beneficio según su periodicidad. */
+export function beneficioMensual(costo: number, periodicidad: string): number {
+  if (periodicidad === 'Unica') return 0; // pago único, no recurrente
+  const factor = PERIODICIDAD_FACTOR[periodicidad] ?? 1;
+  return round2(costo / factor);
+}
+/** Costo anual: única cuenta una vez; el resto es mensual × 12. */
+export function beneficioAnual(costo: number, periodicidad: string): number {
+  return periodicidad === 'Unica' ? round2(costo) : round2(beneficioMensual(costo, periodicidad) * 12);
+}
+
 export interface NominaSemanalRow {
   id: string;
   colaborador_id: string | null;

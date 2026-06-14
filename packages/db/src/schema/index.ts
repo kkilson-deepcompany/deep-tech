@@ -18,3 +18,4 @@ export * from './kover';
 export * from './service-orders';
 export * from './support-tickets';
 export * from './nomina-semanal';
+export * from './compensacion';

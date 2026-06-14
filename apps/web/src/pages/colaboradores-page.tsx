@@ -7,6 +7,7 @@ import type { Colaborador } from '@/lib/domain';
 import { colaboradoresSpec } from '@/lib/import-specs';
 import { PageHeader } from '@/components/page-header';
 import { ColaboradorDialog } from '@/components/colaborador-dialog';
+import { CompensacionDialog } from '@/components/compensacion-dialog';
 import { BulkImportDialog } from '@/components/bulk-import-dialog';
 import { EmpresaLogo } from '@/components/empresa-logo';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ export function ColaboradoresPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<Colaborador | null>(null);
+  const [compColab, setCompColab] = useState<Colaborador | null>(null);
   const [activeEmpresa, setActiveEmpresa] = useState<string>(TODAS);
 
   // Empresas derivadas de la data real (no del catálogo de branding) para que
@@ -210,6 +212,7 @@ export function ColaboradoresPage() {
                   <th className="px-4 py-3 font-medium">Departamento</th>
                   <th className="px-4 py-3 font-medium">Salario</th>
                   <th className="px-4 py-3 font-medium">Estado</th>
+                  <th className="px-4 py-3 font-medium"></th>
                 </tr>
               </thead>
               <tbody>
@@ -246,12 +249,24 @@ export function ColaboradoresPage() {
                     <td className="px-4 py-3">
                       <Badge variant={COLABORADOR_ESTADO_VARIANT[c.estado]}>{c.estado}</Badge>
                     </td>
+                    <td className="px-4 py-3 text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCompColab(c);
+                        }}
+                      >
+                        Compensación
+                      </Button>
+                    </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
                     <td
-                      colSpan={showEmpresaCol ? 6 : 5}
+                      colSpan={showEmpresaCol ? 7 : 6}
                       className="text-muted-foreground px-4 py-10 text-center"
                     >
                       {activeEmpresa === TODAS
@@ -267,6 +282,9 @@ export function ColaboradoresPage() {
       </Card>
 
       <ColaboradorDialog open={dialogOpen} onOpenChange={setDialogOpen} colaborador={editing} />
+      {compColab && (
+        <CompensacionDialog colaborador={compColab} onClose={() => setCompColab(null)} />
+      )}
       <BulkImportDialog
         open={importOpen}
         onOpenChange={setImportOpen}

@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import type {
   Beca,
+  BeneficioColaborador,
   Budget,
   BudgetLine,
   Candidato,
@@ -21,6 +22,7 @@ import type {
   NominaRegistro,
   NominaSemanalRow,
   PaymentReminder,
+  Prestamo,
   Product,
   SeguroPlan,
   Vacante,
@@ -599,5 +601,54 @@ export async function createNominaSemanalRow(values: Record<string, unknown>): P
 
 export async function deleteNominaSemanalRow(id: string): Promise<void> {
   const { error } = await supabase.from('nomina_semanal').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ── Préstamos y beneficios por colaborador ───────────────────────────────────
+
+export async function fetchPrestamos(colaboradorId: string): Promise<Prestamo[]> {
+  const { data, error } = await supabase
+    .from('prestamos')
+    .select('*')
+    .eq('colaborador_id', colaboradorId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as Prestamo[];
+}
+
+export async function savePrestamo(values: Record<string, unknown>, id: string | null): Promise<void> {
+  const { error } = id
+    ? await supabase.from('prestamos').update(values).eq('id', id)
+    : await supabase.from('prestamos').insert(values);
+  if (error) throw error;
+}
+
+export async function deletePrestamo(id: string): Promise<void> {
+  const { error } = await supabase.from('prestamos').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function fetchBeneficiosColaborador(colaboradorId: string): Promise<BeneficioColaborador[]> {
+  const { data, error } = await supabase
+    .from('beneficios_colaborador')
+    .select('*')
+    .eq('colaborador_id', colaboradorId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as BeneficioColaborador[];
+}
+
+export async function saveBeneficioColaborador(
+  values: Record<string, unknown>,
+  id: string | null,
+): Promise<void> {
+  const { error } = id
+    ? await supabase.from('beneficios_colaborador').update(values).eq('id', id)
+    : await supabase.from('beneficios_colaborador').insert(values);
+  if (error) throw error;
+}
+
+export async function deleteBeneficioColaborador(id: string): Promise<void> {
+  const { error } = await supabase.from('beneficios_colaborador').delete().eq('id', id);
   if (error) throw error;
 }
