@@ -303,6 +303,7 @@ export type Database = {
           created_at: string
           estado: string
           fecha_nacimiento: string | null
+          frecuencia_pago: string
           genero: string | null
           id: string
           nota: string | null
@@ -317,6 +318,7 @@ export type Database = {
           created_at?: string
           estado?: string
           fecha_nacimiento?: string | null
+          frecuencia_pago?: string
           genero?: string | null
           id?: string
           nota?: string | null
@@ -331,6 +333,7 @@ export type Database = {
           created_at?: string
           estado?: string
           fecha_nacimiento?: string | null
+          frecuencia_pago?: string
           genero?: string | null
           id?: string
           nota?: string | null

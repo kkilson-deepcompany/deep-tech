@@ -20,7 +20,9 @@ import {
   BECA_ESTADOS,
   FORMACION_ESTADOS,
   SEGURO_ESTADOS,
+  SEGURO_FRECUENCIAS,
   formatMoney,
+  primaPorFrecuencia,
   round2,
   type ColaboradorSeguro,
 } from '@/lib/domain';
@@ -114,19 +116,14 @@ function SegurosSection() {
   const filas = seguros ?? [];
   if (filas.length === 0) return <Empty>No hay fichas de seguro todavía.</Empty>;
 
-  const mejorCotizacion = (cot: Record<string, number>) => {
-    const vals = Object.values(cot ?? {}).filter((n) => n > 0);
-    return vals.length ? Math.min(...vals) : null;
-  };
-
-  const mensual = round2(filas.reduce((s, r) => s + (Number(r.prima_usd) || 0), 0));
+  const anual = round2(filas.reduce((s, r) => s + (Number(r.prima_usd) || 0), 0));
 
   return (
     <>
       <CostosResumen
-        mensual={mensual}
-        anual={round2(mensual * 12)}
-        nota="Suma de primas mensuales × 12"
+        mensual={round2(anual / 10)}
+        anual={anual}
+        nota="Prima anual; cuota mensual = anual ÷ 10"
       />
       <Card>
         <CardContent className="p-0">
@@ -136,16 +133,15 @@ function SegurosSection() {
                 <th className="px-4 py-3">Colaborador</th>
                 <th className="px-4 py-3">Estado</th>
                 <th className="px-4 py-3">Plan elegido</th>
-                <th className="px-4 py-3 text-right">Prima mensual</th>
                 <th className="px-4 py-3 text-right">Prima anual</th>
-                <th className="px-4 py-3 text-right">Mejor cotización</th>
+                <th className="px-4 py-3">Frecuencia</th>
+                <th className="px-4 py-3 text-right">Cuota</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
               {filas.map((s) => {
                 const plan = s.plan_id ? planById.get(s.plan_id) : null;
-                const mejor = mejorCotizacion(s.cotizacion);
                 return (
                   <tr key={s.id} className="border-b last:border-0">
                     <td className="px-4 py-3">
@@ -159,11 +155,11 @@ function SegurosSection() {
                       {plan ? `${plan.aseguradora} ${plan.nombre} (${plan.tipo})` : '—'}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">{formatMoney(s.prima_usd)}</td>
+                    <td className="text-muted-foreground px-4 py-3">{s.frecuencia_pago}</td>
                     <td className="px-4 py-3 text-right tabular-nums">
-                      {s.prima_usd ? formatMoney(round2(Number(s.prima_usd) * 12)) : '—'}
-                    </td>
-                    <td className="text-muted-foreground px-4 py-3 text-right tabular-nums">
-                      {mejor != null ? formatMoney(mejor) : '—'}
+                      {s.prima_usd
+                        ? formatMoney(primaPorFrecuencia(Number(s.prima_usd), s.frecuencia_pago))
+                        : '—'}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Button size="sm" variant="outline" onClick={() => setEditing(s)}>
@@ -207,6 +203,7 @@ function SeguroDialog({
   const [estado, setEstado] = useState(seguro.estado);
   const [planId, setPlanId] = useState(seguro.plan_id ?? '');
   const [prima, setPrima] = useState(seguro.prima_usd ?? '');
+  const [frecuencia, setFrecuencia] = useState(seguro.frecuencia_pago || 'Anual');
   const [inicio, setInicio] = useState(seguro.vigencia_inicio ?? '');
   const [fin, setFin] = useState(seguro.vigencia_fin ?? '');
   const [nota, setNota] = useState(seguro.nota ?? '');
@@ -217,6 +214,7 @@ function SeguroDialog({
         estado,
         plan_id: planId || null,
         prima_usd: prima === '' ? null : prima,
+        frecuencia_pago: frecuencia,
         vigencia_inicio: inicio || null,
         vigencia_fin: fin || null,
         nota: nota || null,
@@ -259,10 +257,28 @@ function SeguroDialog({
             </Select>
           </label>
           <label className="text-sm">
-            Prima USD
+            Prima ANUAL (USD)
             <Input type="number" min="0" step="0.01" value={prima} onChange={(e) => setPrima(e.target.value)} />
           </label>
-          <div />
+          <label className="text-sm">
+            Frecuencia de pago
+            <Select value={frecuencia} onChange={(e) => setFrecuencia(e.target.value)}>
+              {SEGURO_FRECUENCIAS.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </Select>
+          </label>
+          <div className="bg-muted/40 rounded-md border p-2 text-xs sm:col-span-2">
+            <span className="text-muted-foreground">Cuotas según el monto anual: </span>
+            <span className="tabular-nums">
+              Anual ${formatMoney(Number(prima) || 0)} · Semestral $
+              {formatMoney(primaPorFrecuencia(Number(prima) || 0, 'Semestral'))} · Trimestral $
+              {formatMoney(primaPorFrecuencia(Number(prima) || 0, 'Trimestral'))} · Mensual $
+              {formatMoney(primaPorFrecuencia(Number(prima) || 0, 'Mensual'))}
+            </span>
+          </div>
           <label className="text-sm">
             Vigencia inicio
             <Input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />

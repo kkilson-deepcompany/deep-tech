@@ -353,12 +353,31 @@ export interface SeguroPlan {
 export const SEGURO_ESTADOS = ['Asegurado', 'Cotizado', 'Pendiente', 'Sin seguro'] as const;
 export type SeguroEstado = (typeof SEGURO_ESTADOS)[number];
 
+export const SEGURO_FRECUENCIAS = ['Anual', 'Semestral', 'Trimestral', 'Mensual'] as const;
+export type SeguroFrecuencia = (typeof SEGURO_FRECUENCIAS)[number];
+
+/** Divisores sobre la prima ANUAL para obtener la cuota por frecuencia. */
+export const SEGURO_FRECUENCIA_DIVISOR: Record<SeguroFrecuencia, number> = {
+  Anual: 1,
+  Semestral: 2,
+  Trimestral: 4,
+  Mensual: 10,
+};
+
+/** Cuota de la prima según la frecuencia (la prima base es anual). */
+export function primaPorFrecuencia(primaAnual: number, frecuencia: string): number {
+  const div = SEGURO_FRECUENCIA_DIVISOR[frecuencia as SeguroFrecuencia] ?? 1;
+  return round2((primaAnual || 0) / div);
+}
+
 export interface ColaboradorSeguro {
   id: string;
   colaborador_id: string;
   estado: SeguroEstado;
   plan_id: string | null;
+  /** Prima ANUAL en USD. */
   prima_usd: string | null;
+  frecuencia_pago: string;
   fecha_nacimiento: string | null;
   genero: string | null;
   cotizacion: Record<string, number>;

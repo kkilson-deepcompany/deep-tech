@@ -45,7 +45,10 @@ export function CostoNominaPage() {
 
   // Beneficios corporativos (catálogos de las pestañas Seguros/Formaciones/Becas).
   const corp = useMemo(() => {
-    const segMensual = round2((segQ.data ?? []).reduce((s, r) => s + (Number(r.prima_usd) || 0), 0));
+    // Prima de seguro = monto ANUAL; el costo mensual contable es anual ÷ 12.
+    const segMensual = round2(
+      (segQ.data ?? []).reduce((s, r) => s + (Number(r.prima_usd) || 0), 0) / 12,
+    );
     const formAnual = round2((formQ.data ?? []).reduce((s, f) => s + (Number(f.costo_usd) || 0), 0));
     const becaAnual = round2(
       (becaQ.data ?? []).reduce(
