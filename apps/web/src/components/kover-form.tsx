@@ -233,13 +233,8 @@ const SALUD_GENERAL_RESTO = KOVER_PREGUNTAS_SALUD_GENERAL.filter(
   (q) => q.code !== KOVER_GOOD_HEALTH_CODE,
 );
 
-/** ¿Esta persona declaró gozar de buena salud? */
-function declaroBuenaSalud(p: KoverPersona): boolean {
-  return p.health[KOVER_GOOD_HEALTH_CODE]?.answer === true;
-}
-
-/** Pregunta-compuerta "¿Disfruta de buena salud?". "Sí" muestra el aviso legal
- *  y oculta el resto del cuestionario; "No" lo despliega. */
+/** Pregunta "¿Disfruta de buena salud?": al marcar "Sí" muestra el aviso legal.
+ *  No oculta el resto del cuestionario; es una pregunta más (la primera). */
 function CompuertaBuenaSalud({
   value,
   onChange,
@@ -412,6 +407,12 @@ export function KoverForm({
       <div className="space-y-3">
       {/* === SECCIÓN 1 === */}
       <Seccion numero={1} titulo="Información de la solicitud" abierta={open === 1} onToggle={() => toggle(1)}>
+        {publicToken && (
+          <p className="text-muted-foreground text-xs">
+            Esta información la definió la empresa y no es editable.
+          </p>
+        )}
+        <fieldset disabled={Boolean(publicToken)} className="contents">
         <div className="grid gap-3 sm:grid-cols-2">
           <FormField label="Fecha de la solicitud" htmlFor="application_date" required>
             <Input
@@ -455,6 +456,7 @@ export function KoverForm({
             </Select>
           </FormField>
         </div>
+        </fieldset>
       </Seccion>
 
       {/* === SECCIÓN 2 — Datos del titular === */}
@@ -751,25 +753,24 @@ export function KoverForm({
             <p className="bg-muted/40 rounded px-2 py-1 text-sm font-semibold">
               {nombrePersona(p)} {i === 0 ? '(titular)' : `(${p.relationship || 'beneficiario'})`}
             </p>
-            {/* Compuerta: buena salud va primero. */}
+            {/* Buena salud va primero (con su aviso legal al marcar "Sí");
+                el resto de preguntas se muestran igual. */}
             <CompuertaBuenaSalud
               value={p.health[KOVER_GOOD_HEALTH_CODE]}
               onChange={(h) => setPersonaHealth(i, KOVER_GOOD_HEALTH_CODE, h)}
             />
-            {/* Si NO goza de buena salud, se despliega el resto. */}
-            {!declaroBuenaSalud(p) &&
-              SALUD_GENERAL_RESTO.map((q) => (
-                <PreguntaSalud
-                  key={`${i}-${q.code}`}
-                  code={`p${i}_${q.code}`}
-                  pregunta={q.pregunta}
-                  value={p.health[q.code]}
-                  onChange={(h) => setPersonaHealth(i, q.code, h)}
-                  applicationId={applicationId}
-                  publicToken={publicToken}
-                  readOnly={readOnly}
-                />
-              ))}
+            {SALUD_GENERAL_RESTO.map((q) => (
+              <PreguntaSalud
+                key={`${i}-${q.code}`}
+                code={`p${i}_${q.code}`}
+                pregunta={q.pregunta}
+                value={p.health[q.code]}
+                onChange={(h) => setPersonaHealth(i, q.code, h)}
+                applicationId={applicationId}
+                publicToken={publicToken}
+                readOnly={readOnly}
+              />
+            ))}
           </div>
         ))}
       </Seccion>
@@ -785,32 +786,25 @@ export function KoverForm({
           Responde «Sí» solo donde aplique. Al marcar «Sí» se piden los detalles del diagnóstico,
           medicación y especialista que vio el caso.
         </p>
-        {personas.map((p, i) =>
-          declaroBuenaSalud(p) ? (
-            <div key={i} className="text-muted-foreground rounded-md border border-dashed p-3 text-xs">
-              <span className="font-semibold">{nombrePersona(p)}</span> declaró gozar de buena salud;
-              no se requiere el historial específico.
-            </div>
-          ) : (
-            <div key={i} className="space-y-2">
-              <p className="bg-muted/40 rounded px-2 py-1 text-sm font-semibold">
-                {nombrePersona(p)} {i === 0 ? '(titular)' : `(${p.relationship || 'beneficiario'})`}
-              </p>
-              {KOVER_PREGUNTAS_HISTORIAL.map((q) => (
-                <PreguntaSalud
-                  key={`${i}-${q.code}`}
-                  code={`p${i}_${q.code}`}
-                  pregunta={q.pregunta}
-                  value={p.health[q.code]}
-                  onChange={(h) => setPersonaHealth(i, q.code, h)}
-                  applicationId={applicationId}
-                  publicToken={publicToken}
-                  readOnly={readOnly}
-                />
-              ))}
-            </div>
-          ),
-        )}
+        {personas.map((p, i) => (
+          <div key={i} className="space-y-2">
+            <p className="bg-muted/40 rounded px-2 py-1 text-sm font-semibold">
+              {nombrePersona(p)} {i === 0 ? '(titular)' : `(${p.relationship || 'beneficiario'})`}
+            </p>
+            {KOVER_PREGUNTAS_HISTORIAL.map((q) => (
+              <PreguntaSalud
+                key={`${i}-${q.code}`}
+                code={`p${i}_${q.code}`}
+                pregunta={q.pregunta}
+                value={p.health[q.code]}
+                onChange={(h) => setPersonaHealth(i, q.code, h)}
+                applicationId={applicationId}
+                publicToken={publicToken}
+                readOnly={readOnly}
+              />
+            ))}
+          </div>
+        ))}
       </Seccion>
 
       {/* === SECCIÓN 8 — Documentos === */}
