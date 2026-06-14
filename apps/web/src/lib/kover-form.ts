@@ -278,6 +278,10 @@ export interface KoverFormData {
   bank_name: string;
   account_number: string;
   account_type: string;
+  // Cuenta internacional (opcional)
+  intl_bank: string;
+  intl_account: string;
+  intl_swift: string;
 
   // Sección 5 — Beneficiario
   bnf_full_name: string;
@@ -325,6 +329,9 @@ export const EMPTY_KOVER_FORM: KoverFormData = {
   bank_name: '',
   account_number: '',
   account_type: '',
+  intl_bank: '',
+  intl_account: '',
+  intl_swift: '',
   bnf_full_name: '',
   bnf_id_document: '',
   bnf_birth_date: '',

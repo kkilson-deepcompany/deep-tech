@@ -209,12 +209,14 @@ function PreguntaSalud({
                 publicToken={publicToken}
                 readOnly={readOnly}
                 docType="informe_medico"
-                label="Informes / exámenes para esta condición"
+                label="Informes / exámenes / fotos para esta condición"
                 relatedQuestionCode={code}
                 accept="application/pdf,image/jpeg,image/png"
                 maxSizeBytes={10 * 1024 * 1024}
                 maxSizeLabel="10 MB"
                 multiple
+                maxFiles={30}
+                capture
               />
             </div>
           )}
@@ -533,14 +535,18 @@ export function KoverForm({
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           <FormField label="Banco" htmlFor="bank_name" required>
-            <Select id="bank_name" value={data.bank_name} onChange={(e) => set('bank_name', e.target.value)}>
-              <option value="">— Selecciona —</option>
+            <Input
+              id="bank_name"
+              list="kover-bancos"
+              placeholder="Selecciona o escribe el banco"
+              value={data.bank_name}
+              onChange={(e) => set('bank_name', e.target.value)}
+            />
+            <datalist id="kover-bancos">
               {KOVER_BANCOS_VE.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
+                <option key={b} value={b} />
               ))}
-            </Select>
+            </datalist>
           </FormField>
           <FormField label="Tipo de cuenta" htmlFor="account_type" required>
             <Select
@@ -566,6 +572,24 @@ export function KoverForm({
                 onChange={(e) => set('account_number', e.target.value.replace(/\D/g, ''))}
               />
             </FormField>
+          </div>
+        </div>
+
+        {/* Cuenta internacional (opcional) */}
+        <div className="mt-3 rounded-md border p-3">
+          <p className="mb-2 text-sm font-semibold">Cuenta internacional (opcional)</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <FormField label="Banco internacional" htmlFor="intl_bank">
+              <Input id="intl_bank" value={data.intl_bank} onChange={(e) => set('intl_bank', e.target.value)} />
+            </FormField>
+            <FormField label="SWIFT / BIC" htmlFor="intl_swift">
+              <Input id="intl_swift" value={data.intl_swift} onChange={(e) => set('intl_swift', e.target.value)} />
+            </FormField>
+            <div className="sm:col-span-2">
+              <FormField label="N.º de cuenta / IBAN" htmlFor="intl_account">
+                <Input id="intl_account" value={data.intl_account} onChange={(e) => set('intl_account', e.target.value)} />
+              </FormField>
+            </div>
           </div>
         </div>
       </Seccion>
@@ -708,6 +732,10 @@ export function KoverForm({
 
       {/* === SECCIÓN 8 — Documentos === */}
       <Seccion numero={8} titulo="Documentos" abierta={open === 8} onToggle={() => toggle(8)}>
+        <p className="rounded-md border border-amber-300 bg-amber-50/50 p-3 text-xs text-amber-900">
+          Resumen de documentos cargados. <strong>Mínimos requeridos:</strong> identificación
+          (cédula) y RIF. Puedes subir un archivo o <strong>tomar una foto</strong>.
+        </p>
         {applicationId ? (
           <div className="grid gap-4 sm:grid-cols-2">
             <KoverFileUpload
@@ -720,6 +748,7 @@ export function KoverForm({
               maxSizeBytes={5 * 1024 * 1024}
               maxSizeLabel="5 MB"
               required
+              capture
             />
             <KoverFileUpload
               applicationId={applicationId}
@@ -727,10 +756,11 @@ export function KoverForm({
               readOnly={readOnly}
               docType="rif"
               label="RIF"
-              accept="application/pdf"
+              accept="application/pdf,image/jpeg,image/png"
               maxSizeBytes={5 * 1024 * 1024}
               maxSizeLabel="5 MB"
               required
+              capture
             />
             <KoverFileUpload
               applicationId={applicationId}
@@ -741,6 +771,7 @@ export function KoverForm({
               accept="application/pdf,image/jpeg,image/png"
               maxSizeBytes={5 * 1024 * 1024}
               maxSizeLabel="5 MB"
+              capture
             />
             <KoverFileUpload
               applicationId={applicationId}

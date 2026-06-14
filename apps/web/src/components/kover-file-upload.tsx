@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, FileUp, Trash2, Upload } from 'lucide-react';
+import { Camera, Download, FileUp, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import {
@@ -31,6 +31,10 @@ interface Props {
   required?: boolean;
   /** Cantidad máxima de archivos (default: ilimitado para informes médicos, 1 para identidad). */
   multiple?: boolean;
+  /** Tope de cantidad de archivos (ej. 30 por pregunta de salud). */
+  maxFiles?: number;
+  /** Habilita el botón "Tomar foto" (cámara) además de subir archivo. */
+  capture?: boolean;
   /** Si se pasa, opera en modo público: usa las RPCs anon-friendly y la
    *  query se cachea por token (no expone el listado completo). */
   publicToken?: string;
@@ -70,12 +74,15 @@ export function KoverFileUpload({
   maxSizeLabel,
   required = false,
   multiple = false,
+  maxFiles,
+  capture = false,
   publicToken,
   readOnly = false,
 }: Props) {
   const queryClient = useQueryClient();
   const dialog = useDialog();
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
   /** En modo público cacheamos por token (anon ve solo lo de su token). */
@@ -100,6 +107,9 @@ export function KoverFileUpload({
   const upload = useMutation({
     mutationFn: async (file: File) => {
       // Validaciones cliente
+      if (typeof maxFiles === 'number' && docs.length >= maxFiles) {
+        throw new Error(`Máximo ${maxFiles} archivos en esta sección.`);
+      }
       if (file.size > maxSizeBytes) {
         throw new Error(`El archivo supera el máximo de ${maxSizeLabel}.`);
       }
@@ -212,6 +222,7 @@ export function KoverFileUpload({
   }
 
   const ocupado = !multiple && docs.length > 0;
+  const tope = typeof maxFiles === 'number' && docs.length >= maxFiles;
   const disabled = readOnly || upload.isPending;
 
   return (
@@ -222,7 +233,7 @@ export function KoverFileUpload({
       </div>
 
       {/* Zona de drop / botón de subir */}
-      {!ocupado && !readOnly && (
+      {!ocupado && !readOnly && !tope && (
         <div
           onDragOver={(e) => {
             e.preventDefault();
@@ -264,6 +275,35 @@ export function KoverFileUpload({
           />
         </div>
       )}
+
+      {/* Cámara + contador */}
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={onFile}
+      />
+      <div className="flex items-center justify-between">
+        {capture && !readOnly && !tope ? (
+          <button
+            type="button"
+            onClick={() => cameraRef.current?.click()}
+            disabled={disabled}
+            className="text-primary inline-flex items-center gap-1 text-xs font-medium hover:underline disabled:opacity-50"
+          >
+            <Camera className="size-3.5" /> Tomar foto
+          </button>
+        ) : (
+          <span />
+        )}
+        {typeof maxFiles === 'number' && (
+          <span className={cn('text-[10px]', tope ? 'text-destructive' : 'text-muted-foreground')}>
+            {docs.length} / {maxFiles}
+          </span>
+        )}
+      </div>
 
       {/* Lista de archivos subidos */}
       {docs.length > 0 && (
@@ -324,7 +364,7 @@ export function KoverFileUpload({
       )}
 
       {/* Botón "subir otro" cuando es multiple */}
-      {multiple && docs.length > 0 && !readOnly && (
+      {multiple && docs.length > 0 && !readOnly && !tope && (
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
