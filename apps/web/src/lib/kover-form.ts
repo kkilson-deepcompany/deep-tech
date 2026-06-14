@@ -157,8 +157,94 @@ export interface HealthAnswer {
   notes?: string;
 }
 
+/**
+ * Una persona del formulario (titular o beneficiario). Cada una responde el
+ * MISMO formato: datos personales + el cuestionario médico completo. Permite
+ * que una solicitud cubra a una o varias personas en un solo formulario.
+ */
+export interface KoverPersona {
+  role: 'titular' | 'beneficiario';
+  /** Parentesco con el titular (vacío para el titular). */
+  relationship: string;
+  first_name: string;
+  last_name: string;
+  id_document: string;
+  birth_date: string;
+  birth_place: string;
+  nationality: string;
+  civil_status: string;
+  weight_kg: string;
+  height_m: string;
+  /** Cuestionario médico (secciones 6 y 7) de esta persona. */
+  health: Record<string, HealthAnswer>;
+}
+
+export function emptyKoverPersona(role: KoverPersona['role'] = 'titular'): KoverPersona {
+  return {
+    role,
+    relationship: '',
+    first_name: '',
+    last_name: '',
+    id_document: '',
+    birth_date: '',
+    birth_place: '',
+    nationality: 'Venezolana',
+    civil_status: '',
+    weight_kg: '',
+    height_m: '',
+    health: {},
+  };
+}
+
+/** Nombre completo legible de una persona. */
+export function nombrePersona(p: KoverPersona): string {
+  return `${p.first_name} ${p.last_name}`.trim() || (p.role === 'titular' ? 'Titular' : 'Beneficiario');
+}
+
+/**
+ * Devuelve las personas del formulario. Si la solicitud usa el esquema nuevo
+ * (`personas`), las retorna; si es del esquema viejo (campos planos del titular
+ * + un beneficiario), las deriva para compatibilidad hacia atrás.
+ */
+export function koverPersonas(data: KoverFormData): KoverPersona[] {
+  if (Array.isArray(data.personas) && data.personas.length > 0) return data.personas;
+  const titular: KoverPersona = {
+    role: 'titular',
+    relationship: '',
+    first_name: data.first_name ?? '',
+    last_name: data.last_name ?? '',
+    id_document: data.id_document ?? '',
+    birth_date: data.birth_date ?? '',
+    birth_place: data.birth_place ?? '',
+    nationality: data.nationality ?? 'Venezolana',
+    civil_status: data.civil_status ?? '',
+    weight_kg: data.weight_kg ?? '',
+    height_m: data.height_m ?? '',
+    health: data.health ?? {},
+  };
+  const out = [titular];
+  if (data.bnf_full_name?.trim()) {
+    const partes = data.bnf_full_name.trim().split(/\s+/);
+    out.push({
+      ...emptyKoverPersona('beneficiario'),
+      relationship: data.bnf_relationship ?? '',
+      first_name: partes.slice(0, Math.ceil(partes.length / 2)).join(' '),
+      last_name: partes.slice(Math.ceil(partes.length / 2)).join(' '),
+      id_document: data.bnf_id_document ?? '',
+      birth_date: data.bnf_birth_date ?? '',
+      weight_kg: data.bnf_weight_kg ?? '',
+      height_m: data.bnf_height_m ?? '',
+    });
+  }
+  return out;
+}
+
 /** Datos del formulario completo (todo lo que pide el documento). */
 export interface KoverFormData {
+  /** Esquema nuevo multi-persona (titular + beneficiarios). Opcional para
+   *  compatibilidad con solicitudes guardadas con el esquema viejo. */
+  personas?: KoverPersona[];
+
   // Sección 1 — Información de la solicitud
   application_date: string;
   insurer: string;
@@ -208,6 +294,8 @@ export interface KoverFormData {
   accepted_terms: boolean;
   signer_full_name: string;
   signer_id_document: string;
+  /** Firma a pulso (data URL PNG). */
+  signature_data_url: string;
 }
 
 export const EMPTY_KOVER_FORM: KoverFormData = {
@@ -247,6 +335,7 @@ export const EMPTY_KOVER_FORM: KoverFormData = {
   accepted_terms: false,
   signer_full_name: '',
   signer_id_document: '',
+  signature_data_url: '',
 };
 
 /** Fila de la BD. */

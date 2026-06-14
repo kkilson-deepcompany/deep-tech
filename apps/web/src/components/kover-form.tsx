@@ -18,6 +18,7 @@ import {
 import { useDialog } from '@/lib/dialog-service';
 import { FormField } from '@/components/form-field';
 import { KoverFileUpload } from '@/components/kover-file-upload';
+import { SignaturePad } from '@/components/signature-pad';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -719,6 +720,30 @@ export function KoverForm({
             veraz y completa.
           </span>
         </label>
+
+        {/* Firma a pulso (manuscrita) */}
+        <div className="mt-2">
+          {readOnly ? (
+            data.signature_data_url ? (
+              <div className="flex flex-col gap-1">
+                <p className="text-muted-foreground text-xs font-medium">Firma</p>
+                <img
+                  src={data.signature_data_url}
+                  alt="Firma"
+                  className="bg-card h-24 w-full max-w-sm rounded border border-gray-400 object-contain"
+                />
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-xs">Sin firma registrada.</p>
+            )
+          ) : (
+            <SignaturePad
+              label="Firme aquí (a pulso, con el dedo o el mouse)"
+              value={data.signature_data_url || null}
+              onChange={(url) => set('signature_data_url', url ?? '')}
+            />
+          )}
+        </div>
       </Seccion>
 
       {/* === Resumen + acciones === */}
