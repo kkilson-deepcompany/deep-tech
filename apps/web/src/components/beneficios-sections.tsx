@@ -21,6 +21,7 @@ import {
   FORMACION_ESTADOS,
   SEGURO_ESTADOS,
   formatMoney,
+  round2,
   type ColaboradorSeguro,
 } from '@/lib/domain';
 import { Card, CardContent } from '@/components/ui/card';
@@ -65,6 +66,35 @@ function Empty({ children }: { children: string }) {
   );
 }
 
+/** Resumen de la inversión: costo mensual y anual para la empresa. */
+function CostosResumen({
+  mensual,
+  anual,
+  nota,
+}: {
+  mensual: number;
+  anual: number;
+  nota?: string;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+      <Card>
+        <CardContent className="p-4">
+          <div className="text-muted-foreground text-xs">Costo mensual</div>
+          <div className="text-xl font-semibold tabular-nums">${formatMoney(mensual)}</div>
+        </CardContent>
+      </Card>
+      <Card className="border-primary/40">
+        <CardContent className="p-4">
+          <div className="text-muted-foreground text-xs">Costo anual</div>
+          <div className="text-xl font-semibold tabular-nums">${formatMoney(anual)}</div>
+          {nota && <div className="text-muted-foreground mt-0.5 text-[11px]">{nota}</div>}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ── Seguros ──────────────────────────────────────────────────────────────────
 function SegurosSection() {
   const qc = useQueryClient();
@@ -89,8 +119,15 @@ function SegurosSection() {
     return vals.length ? Math.min(...vals) : null;
   };
 
+  const mensual = round2(filas.reduce((s, r) => s + (Number(r.prima_usd) || 0), 0));
+
   return (
     <>
+      <CostosResumen
+        mensual={mensual}
+        anual={round2(mensual * 12)}
+        nota="Suma de primas mensuales × 12"
+      />
       <Card>
         <CardContent className="p-0">
           <table className="w-full text-sm">
@@ -99,7 +136,8 @@ function SegurosSection() {
                 <th className="px-4 py-3">Colaborador</th>
                 <th className="px-4 py-3">Estado</th>
                 <th className="px-4 py-3">Plan elegido</th>
-                <th className="px-4 py-3 text-right">Prima USD</th>
+                <th className="px-4 py-3 text-right">Prima mensual</th>
+                <th className="px-4 py-3 text-right">Prima anual</th>
                 <th className="px-4 py-3 text-right">Mejor cotización</th>
                 <th className="px-4 py-3"></th>
               </tr>
@@ -121,6 +159,9 @@ function SegurosSection() {
                       {plan ? `${plan.aseguradora} ${plan.nombre} (${plan.tipo})` : '—'}
                     </td>
                     <td className="px-4 py-3 text-right tabular-nums">{formatMoney(s.prima_usd)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">
+                      {s.prima_usd ? formatMoney(round2(Number(s.prima_usd) * 12)) : '—'}
+                    </td>
                     <td className="text-muted-foreground px-4 py-3 text-right tabular-nums">
                       {mejor != null ? formatMoney(mejor) : '—'}
                     </td>
@@ -354,9 +395,16 @@ function FormacionesSection() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['formaciones'] }),
   });
 
+  const totalFormaciones = round2((data ?? []).reduce((s, f) => s + (Number(f.costo_usd) || 0), 0));
+
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3">
+        <CostosResumen
+          mensual={round2(totalFormaciones / 12)}
+          anual={totalFormaciones}
+          nota="Inversión registrada del año ÷ 12"
+        />
         <Button onClick={() => setOpen(true)}>
           <Plus />
           Nueva formación
@@ -527,9 +575,21 @@ function BecasSection() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['becas'] }),
   });
 
+  const costoBecas = round2(
+    (data ?? []).reduce(
+      (s, b) => s + ((Number(b.monto_usd) || 0) * (Number(b.pct_cubierto) || 0)) / 100,
+      0,
+    ),
+  );
+
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3">
+        <CostosResumen
+          mensual={round2(costoBecas / 12)}
+          anual={costoBecas}
+          nota="Monto cubierto por la empresa ÷ 12"
+        />
         <Button onClick={() => setOpen(true)}>
           <Plus />
           Nueva beca
