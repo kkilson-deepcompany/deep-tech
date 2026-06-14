@@ -12,8 +12,12 @@ import {
   KOVER_PREGUNTAS_SALUD_GENERAL,
   KOVER_TIPOS_CUENTA,
   calcularIMC,
+  emptyKoverPersona,
+  koverPersonas,
+  nombrePersona,
   type HealthAnswer,
   type KoverFormData,
+  type KoverPersona,
 } from '@/lib/kover-form';
 import { useDialog } from '@/lib/dialog-service';
 import { FormField } from '@/components/form-field';
@@ -228,26 +232,55 @@ export function KoverForm({
   onSubmit,
   busy = false,
 }: KoverFormProps) {
-  const [data, setData] = useState<KoverFormData>({ ...EMPTY_KOVER_FORM, ...initialData });
+  const buildInitial = (): KoverFormData => {
+    const base = { ...EMPTY_KOVER_FORM, ...initialData };
+    return { ...base, personas: koverPersonas(base).map((p) => ({ ...p, health: { ...p.health } })) };
+  };
+  const [data, setData] = useState<KoverFormData>(buildInitial);
   const [open, setOpen] = useState<number | null>(1);
   const dialog = useDialog();
 
   useEffect(() => {
-    setData({ ...EMPTY_KOVER_FORM, ...initialData });
+    setData(buildInitial());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData]);
 
   function set<K extends keyof KoverFormData>(field: K, value: KoverFormData[K]) {
     setData((prev) => ({ ...prev, [field]: value }));
   }
 
-  function setHealth(code: string, answer: HealthAnswer) {
-    setData((prev) => ({ ...prev, health: { ...prev.health, [code]: answer } }));
+  const personas = data.personas ?? [];
+  const titular = personas[0] ?? emptyKoverPersona();
+
+  function setPersona(i: number, patch: Partial<KoverPersona>) {
+    setData((prev) => {
+      const ps = [...(prev.personas ?? [])];
+      if (ps[i]) ps[i] = { ...ps[i], ...patch };
+      return { ...prev, personas: ps };
+    });
+  }
+  function setPersonaHealth(i: number, code: string, answer: HealthAnswer) {
+    setData((prev) => {
+      const ps = [...(prev.personas ?? [])];
+      const cur = ps[i];
+      if (cur) ps[i] = { ...cur, health: { ...cur.health, [code]: answer } };
+      return { ...prev, personas: ps };
+    });
+  }
+  function addBeneficiario() {
+    setData((prev) => ({ ...prev, personas: [...(prev.personas ?? []), emptyKoverPersona('beneficiario')] }));
+  }
+  function removeBeneficiario(i: number) {
+    setData((prev) => ({ ...prev, personas: (prev.personas ?? []).filter((_, idx) => idx !== i) }));
   }
 
-  const imc = useMemo(() => calcularIMC(data.weight_kg, data.height_m), [data.weight_kg, data.height_m]);
+  const imc = useMemo(
+    () => calcularIMC(titular.weight_kg, titular.height_m),
+    [titular.weight_kg, titular.height_m],
+  );
   const positivas = useMemo(
-    () => Object.values(data.health).filter((h) => h.answer).length,
-    [data.health],
+    () => personas.reduce((s, p) => s + Object.values(p.health ?? {}).filter((h) => h.answer).length, 0),
+    [personas],
   );
 
   function toggle(n: number) {
@@ -256,18 +289,30 @@ export function KoverForm({
 
   async function handleSubmit(intent: 'draft' | 'final') {
     if (intent === 'final') {
-      if (!data.first_name.trim() || !data.last_name.trim()) {
+      if (!titular.first_name.trim() || !titular.last_name.trim()) {
         await dialog.alert({
           title: 'Datos incompletos',
-          description: 'Faltan nombres y apellidos del solicitante.',
+          description: 'Faltan nombres y apellidos del titular.',
           tone: 'warning',
         });
         return;
       }
-      if (!data.id_document.trim()) {
+      if (!titular.id_document.trim()) {
         await dialog.alert({
           title: 'Datos incompletos',
-          description: 'Falta la cédula del solicitante.',
+          description: 'Falta la cédula del titular.',
+          tone: 'warning',
+        });
+        return;
+      }
+      // Cada beneficiario debe tener al menos nombre y cédula.
+      const bnfIncompleto = personas
+        .slice(1)
+        .find((p) => !p.first_name.trim() || !p.last_name.trim() || !p.id_document.trim());
+      if (bnfIncompleto) {
+        await dialog.alert({
+          title: 'Beneficiario incompleto',
+          description: `Faltan nombre/apellido o cédula de ${nombrePersona(bnfIncompleto)}.`,
           tone: 'warning',
         });
         return;
@@ -281,7 +326,21 @@ export function KoverForm({
         return;
       }
     }
-    onSubmit(data, intent);
+    // Sincroniza los campos planos del titular (columnas denormalizadas / PDF).
+    const finalData: KoverFormData = {
+      ...data,
+      first_name: titular.first_name,
+      last_name: titular.last_name,
+      id_document: titular.id_document,
+      birth_date: titular.birth_date,
+      birth_place: titular.birth_place,
+      nationality: titular.nationality,
+      civil_status: titular.civil_status,
+      weight_kg: titular.weight_kg,
+      height_m: titular.height_m,
+      health: titular.health,
+    };
+    onSubmit(finalData, intent);
   }
 
   return (
@@ -334,39 +393,39 @@ export function KoverForm({
         </div>
       </Seccion>
 
-      {/* === SECCIÓN 2 === */}
-      <Seccion numero={2} titulo="Datos personales" abierta={open === 2} onToggle={() => toggle(2)}>
+      {/* === SECCIÓN 2 — Datos del titular === */}
+      <Seccion numero={2} titulo="Datos personales (titular)" abierta={open === 2} onToggle={() => toggle(2)}>
         <div className="grid gap-3 sm:grid-cols-2">
           <FormField label="Nombres" htmlFor="first_name" required>
-            <Input id="first_name" value={data.first_name} onChange={(e) => set('first_name', e.target.value)} />
+            <Input id="first_name" value={titular.first_name} onChange={(e) => setPersona(0, { first_name: e.target.value })} />
           </FormField>
           <FormField label="Apellidos" htmlFor="last_name" required>
-            <Input id="last_name" value={data.last_name} onChange={(e) => set('last_name', e.target.value)} />
+            <Input id="last_name" value={titular.last_name} onChange={(e) => setPersona(0, { last_name: e.target.value })} />
           </FormField>
           <FormField label="Cédula / documento" htmlFor="id_document" required>
             <Input
               id="id_document"
               placeholder="V-12345678"
-              value={data.id_document}
-              onChange={(e) => set('id_document', e.target.value)}
+              value={titular.id_document}
+              onChange={(e) => setPersona(0, { id_document: e.target.value })}
             />
           </FormField>
           <FormField label="Fecha de nacimiento" htmlFor="birth_date" required>
             <Input
               id="birth_date"
               type="date"
-              value={data.birth_date}
-              onChange={(e) => set('birth_date', e.target.value)}
+              value={titular.birth_date}
+              onChange={(e) => setPersona(0, { birth_date: e.target.value })}
             />
           </FormField>
           <FormField label="Lugar de nacimiento" htmlFor="birth_place" required>
-            <Input id="birth_place" value={data.birth_place} onChange={(e) => set('birth_place', e.target.value)} />
+            <Input id="birth_place" value={titular.birth_place} onChange={(e) => setPersona(0, { birth_place: e.target.value })} />
           </FormField>
           <FormField label="Nacionalidad" htmlFor="nationality">
-            <Input id="nationality" value={data.nationality} onChange={(e) => set('nationality', e.target.value)} />
+            <Input id="nationality" value={titular.nationality} onChange={(e) => setPersona(0, { nationality: e.target.value })} />
           </FormField>
           <FormField label="Estado civil" htmlFor="civil_status" required>
-            <Select id="civil_status" value={data.civil_status} onChange={(e) => set('civil_status', e.target.value)}>
+            <Select id="civil_status" value={titular.civil_status} onChange={(e) => setPersona(0, { civil_status: e.target.value })}>
               <option value="">— Selecciona —</option>
               {KOVER_ESTADOS_CIVILES.map((e) => (
                 <option key={e} value={e}>
@@ -382,8 +441,8 @@ export function KoverForm({
               min="30"
               max="250"
               step="0.1"
-              value={data.weight_kg}
-              onChange={(e) => set('weight_kg', e.target.value)}
+              value={titular.weight_kg}
+              onChange={(e) => setPersona(0, { weight_kg: e.target.value })}
             />
           </FormField>
           <FormField label="Altura (m)" htmlFor="height_m" required>
@@ -393,8 +452,8 @@ export function KoverForm({
               min="1.20"
               max="2.30"
               step="0.01"
-              value={data.height_m}
-              onChange={(e) => set('height_m', e.target.value)}
+              value={titular.height_m}
+              onChange={(e) => setPersona(0, { height_m: e.target.value })}
             />
           </FormField>
           <FormField label="IMC (calculado)" htmlFor="bmi">
@@ -511,68 +570,80 @@ export function KoverForm({
         </div>
       </Seccion>
 
-      {/* === SECCIÓN 5 === */}
-      <Seccion numero={5} titulo="Beneficiario" abierta={open === 5} onToggle={() => toggle(5)}>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <FormField label="Nombre y apellido" htmlFor="bnf_full_name" required>
-            <Input
-              id="bnf_full_name"
-              value={data.bnf_full_name}
-              onChange={(e) => set('bnf_full_name', e.target.value)}
-            />
-          </FormField>
-          <FormField label="Cédula" htmlFor="bnf_id_document" required>
-            <Input
-              id="bnf_id_document"
-              value={data.bnf_id_document}
-              onChange={(e) => set('bnf_id_document', e.target.value)}
-            />
-          </FormField>
-          <FormField label="Fecha de nacimiento" htmlFor="bnf_birth_date" required>
-            <Input
-              id="bnf_birth_date"
-              type="date"
-              value={data.bnf_birth_date}
-              onChange={(e) => set('bnf_birth_date', e.target.value)}
-            />
-          </FormField>
-          <FormField label="Parentesco" htmlFor="bnf_relationship" required>
-            <Select
-              id="bnf_relationship"
-              value={data.bnf_relationship}
-              onChange={(e) => set('bnf_relationship', e.target.value)}
-            >
-              <option value="">— Selecciona —</option>
-              {KOVER_PARENTESCOS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-          <FormField label="Peso (kg)" htmlFor="bnf_weight_kg">
-            <Input
-              id="bnf_weight_kg"
-              type="number"
-              min="30"
-              max="250"
-              step="0.1"
-              value={data.bnf_weight_kg}
-              onChange={(e) => set('bnf_weight_kg', e.target.value)}
-            />
-          </FormField>
-          <FormField label="Estatura (m)" htmlFor="bnf_height_m">
-            <Input
-              id="bnf_height_m"
-              type="number"
-              min="1.20"
-              max="2.30"
-              step="0.01"
-              value={data.bnf_height_m}
-              onChange={(e) => set('bnf_height_m', e.target.value)}
-            />
-          </FormField>
-        </div>
+      {/* === SECCIÓN 5 — Beneficiarios (N) === */}
+      <Seccion
+        numero={5}
+        titulo={`Beneficiarios · ${personas.length - 1}`}
+        abierta={open === 5}
+        onToggle={() => toggle(5)}
+      >
+        <p className="text-muted-foreground text-xs">
+          Agrega a las personas adicionales a cubrir (cónyuge, hijos, padres…). Cada beneficiario
+          también responderá su cuestionario médico en las secciones 6 y 7.
+        </p>
+        {personas.slice(1).map((p, idx) => {
+          const i = idx + 1; // índice real en personas
+          return (
+            <div key={i} className="rounded-md border p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-semibold">
+                  Beneficiario {idx + 1}
+                  {p.first_name ? ` · ${nombrePersona(p)}` : ''}
+                </span>
+                {!readOnly && (
+                  <Button size="sm" variant="outline" className="text-destructive" onClick={() => removeBeneficiario(i)}>
+                    Quitar
+                  </Button>
+                )}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <FormField label="Nombres" htmlFor={`bnf-${i}-fn`} required>
+                  <Input id={`bnf-${i}-fn`} value={p.first_name} onChange={(e) => setPersona(i, { first_name: e.target.value })} />
+                </FormField>
+                <FormField label="Apellidos" htmlFor={`bnf-${i}-ln`} required>
+                  <Input id={`bnf-${i}-ln`} value={p.last_name} onChange={(e) => setPersona(i, { last_name: e.target.value })} />
+                </FormField>
+                <FormField label="Cédula / documento" htmlFor={`bnf-${i}-id`} required>
+                  <Input id={`bnf-${i}-id`} value={p.id_document} onChange={(e) => setPersona(i, { id_document: e.target.value })} />
+                </FormField>
+                <FormField label="Parentesco" htmlFor={`bnf-${i}-rel`} required>
+                  <Select id={`bnf-${i}-rel`} value={p.relationship} onChange={(e) => setPersona(i, { relationship: e.target.value })}>
+                    <option value="">— Selecciona —</option>
+                    {KOVER_PARENTESCOS.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+                <FormField label="Fecha de nacimiento" htmlFor={`bnf-${i}-bd`} required>
+                  <Input id={`bnf-${i}-bd`} type="date" value={p.birth_date} onChange={(e) => setPersona(i, { birth_date: e.target.value })} />
+                </FormField>
+                <FormField label="Estado civil" htmlFor={`bnf-${i}-cs`}>
+                  <Select id={`bnf-${i}-cs`} value={p.civil_status} onChange={(e) => setPersona(i, { civil_status: e.target.value })}>
+                    <option value="">— Selecciona —</option>
+                    {KOVER_ESTADOS_CIVILES.map((e) => (
+                      <option key={e} value={e}>
+                        {e}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+                <FormField label="Peso (kg)" htmlFor={`bnf-${i}-w`}>
+                  <Input id={`bnf-${i}-w`} type="number" min="0" max="250" step="0.1" value={p.weight_kg} onChange={(e) => setPersona(i, { weight_kg: e.target.value })} />
+                </FormField>
+                <FormField label="Altura (m)" htmlFor={`bnf-${i}-h`}>
+                  <Input id={`bnf-${i}-h`} type="number" min="0" max="2.30" step="0.01" value={p.height_m} onChange={(e) => setPersona(i, { height_m: e.target.value })} />
+                </FormField>
+              </div>
+            </div>
+          );
+        })}
+        {!readOnly && (
+          <Button variant="outline" onClick={addBeneficiario}>
+            + Agregar beneficiario
+          </Button>
+        )}
       </Seccion>
 
       {/* === SECCIÓN 6 — SALUD GENERAL === */}
@@ -582,20 +653,25 @@ export function KoverForm({
         abierta={open === 6}
         onToggle={() => toggle(6)}
       >
-        <div className="space-y-2">
-          {KOVER_PREGUNTAS_SALUD_GENERAL.map((q) => (
-            <PreguntaSalud
-              key={q.code}
-              code={q.code}
-              pregunta={q.pregunta}
-              value={data.health[q.code]}
-              onChange={(h) => setHealth(q.code, h)}
-              applicationId={applicationId}
-              publicToken={publicToken}
-              readOnly={readOnly}
-            />
-          ))}
-        </div>
+        {personas.map((p, i) => (
+          <div key={i} className="space-y-2">
+            <p className="bg-muted/40 rounded px-2 py-1 text-sm font-semibold">
+              {nombrePersona(p)} {i === 0 ? '(titular)' : `(${p.relationship || 'beneficiario'})`}
+            </p>
+            {KOVER_PREGUNTAS_SALUD_GENERAL.map((q) => (
+              <PreguntaSalud
+                key={`${i}-${q.code}`}
+                code={`p${i}_${q.code}`}
+                pregunta={q.pregunta}
+                value={p.health[q.code]}
+                onChange={(h) => setPersonaHealth(i, q.code, h)}
+                applicationId={applicationId}
+                publicToken={publicToken}
+                readOnly={readOnly}
+              />
+            ))}
+          </div>
+        ))}
       </Seccion>
 
       {/* === SECCIÓN 7 — HISTORIAL MÉDICO === */}
@@ -609,20 +685,25 @@ export function KoverForm({
           Responde «Sí» solo donde aplique. Al marcar «Sí» se piden los detalles del diagnóstico,
           medicación y especialista que vio el caso.
         </p>
-        <div className="space-y-2">
-          {KOVER_PREGUNTAS_HISTORIAL.map((q) => (
-            <PreguntaSalud
-              key={q.code}
-              code={q.code}
-              pregunta={q.pregunta}
-              value={data.health[q.code]}
-              onChange={(h) => setHealth(q.code, h)}
-              applicationId={applicationId}
-              publicToken={publicToken}
-              readOnly={readOnly}
-            />
-          ))}
-        </div>
+        {personas.map((p, i) => (
+          <div key={i} className="space-y-2">
+            <p className="bg-muted/40 rounded px-2 py-1 text-sm font-semibold">
+              {nombrePersona(p)} {i === 0 ? '(titular)' : `(${p.relationship || 'beneficiario'})`}
+            </p>
+            {KOVER_PREGUNTAS_HISTORIAL.map((q) => (
+              <PreguntaSalud
+                key={`${i}-${q.code}`}
+                code={`p${i}_${q.code}`}
+                pregunta={q.pregunta}
+                value={p.health[q.code]}
+                onChange={(h) => setPersonaHealth(i, q.code, h)}
+                applicationId={applicationId}
+                publicToken={publicToken}
+                readOnly={readOnly}
+              />
+            ))}
+          </div>
+        ))}
       </Seccion>
 
       {/* === SECCIÓN 8 — Documentos === */}
