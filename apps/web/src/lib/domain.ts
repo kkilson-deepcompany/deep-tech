@@ -118,6 +118,8 @@ export interface Candidato {
   estado: CandidatoEstado;
   comentarios: string | null;
   notas: string | null;
+  compensacion_propuesta_usd: string | null;
+  beneficios_estimados_usd: string | null;
   form_token: string | null;
   form_completado: boolean;
   created_at: string;

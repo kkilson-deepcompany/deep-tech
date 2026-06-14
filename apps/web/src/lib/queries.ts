@@ -652,3 +652,16 @@ export async function deleteBeneficioColaborador(id: string): Promise<void> {
   const { error } = await supabase.from('beneficios_colaborador').delete().eq('id', id);
   if (error) throw error;
 }
+
+// Globales (para el tablero de costo de nómina + beneficios de toda la empresa).
+export async function fetchAllBeneficiosColaborador(): Promise<BeneficioColaborador[]> {
+  const { data, error } = await supabase.from('beneficios_colaborador').select('*');
+  if (error) throw error;
+  return (data ?? []) as BeneficioColaborador[];
+}
+
+export async function fetchAllPrestamos(): Promise<Prestamo[]> {
+  const { data, error } = await supabase.from('prestamos').select('*').eq('estado', 'Activo');
+  if (error) throw error;
+  return (data ?? []) as Prestamo[];
+}

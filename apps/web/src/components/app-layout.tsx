@@ -72,6 +72,7 @@ const NAV_GROUPS: NavGroup[] = [
       { to: '/recordatorios', label: 'Recordatorios', icon: BellRing },
       { to: '/presupuestos', label: 'Presupuestos', icon: Wallet },
       { to: '/ingresos', label: 'Ingresos', icon: TrendingUp },
+      { to: '/costo-nomina', label: 'Costo Nómina', icon: Banknote },
     ],
   },
   {

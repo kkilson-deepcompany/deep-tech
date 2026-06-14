@@ -192,8 +192,10 @@ export type Database = {
       candidatos: {
         Row: {
           base_datos: Database["public"]["Enums"]["base_datos_secundaria"]
+          beneficios_estimados_usd: number | null
           cedula: string | null
           comentarios: string | null
+          compensacion_propuesta_usd: number | null
           correo: string
           created_at: string
           cv_url: string | null
@@ -215,8 +217,10 @@ export type Database = {
         }
         Insert: {
           base_datos?: Database["public"]["Enums"]["base_datos_secundaria"]
+          beneficios_estimados_usd?: number | null
           cedula?: string | null
           comentarios?: string | null
+          compensacion_propuesta_usd?: number | null
           correo: string
           created_at?: string
           cv_url?: string | null
@@ -238,8 +242,10 @@ export type Database = {
         }
         Update: {
           base_datos?: Database["public"]["Enums"]["base_datos_secundaria"]
+          beneficios_estimados_usd?: number | null
           cedula?: string | null
           comentarios?: string | null
+          compensacion_propuesta_usd?: number | null
           correo?: string
           created_at?: string
           cv_url?: string | null

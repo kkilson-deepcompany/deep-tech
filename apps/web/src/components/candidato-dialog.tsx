@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { CANDIDATO_ESTADOS, CANDIDATO_FUENTES, nullifyEmpty } from '@/lib/domain';
+import { CANDIDATO_ESTADOS, CANDIDATO_FUENTES, formatMoney, nullifyEmpty, round2 } from '@/lib/domain';
 import type { Candidato, Vacante } from '@/lib/domain';
 import {
   Dialog,
@@ -33,6 +33,8 @@ type CandidatoFormValues = {
   estado: string;
   comentarios: string;
   notas: string;
+  compensacion_propuesta_usd: string;
+  beneficios_estimados_usd: string;
 };
 
 function toFormValues(c: Candidato | null): CandidatoFormValues {
@@ -47,6 +49,8 @@ function toFormValues(c: Candidato | null): CandidatoFormValues {
     estado: c?.estado ?? 'Pendiente',
     comentarios: c?.comentarios ?? '',
     notas: c?.notas ?? '',
+    compensacion_propuesta_usd: c?.compensacion_propuesta_usd ?? '',
+    beneficios_estimados_usd: c?.beneficios_estimados_usd ?? '',
   };
 }
 
@@ -65,8 +69,12 @@ export function CandidatoDialog({ open, onOpenChange, candidato, vacantes }: Can
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<CandidatoFormValues>({ defaultValues: toFormValues(candidato) });
+
+  const compMensual = (Number(watch('compensacion_propuesta_usd')) || 0) +
+    (Number(watch('beneficios_estimados_usd')) || 0);
 
   useEffect(() => {
     if (open) reset(toFormValues(candidato));
@@ -217,6 +225,32 @@ export function CandidatoDialog({ open, onOpenChange, candidato, vacantes }: Can
           <FormField label="Notas internas" htmlFor="notas" className="sm:col-span-2">
             <Textarea id="notas" {...register('notas')} />
           </FormField>
+
+          <FormField label="Compensación propuesta (USD/mes)" htmlFor="compensacion_propuesta_usd">
+            <Input
+              id="compensacion_propuesta_usd"
+              type="number"
+              min="0"
+              step="0.01"
+              {...register('compensacion_propuesta_usd')}
+            />
+          </FormField>
+          <FormField label="Beneficios estimados (USD/mes)" htmlFor="beneficios_estimados_usd">
+            <Input
+              id="beneficios_estimados_usd"
+              type="number"
+              min="0"
+              step="0.01"
+              {...register('beneficios_estimados_usd')}
+            />
+          </FormField>
+
+          <div className="bg-muted/40 rounded-md border p-3 text-sm sm:col-span-2">
+            Costo estimado del paquete:{' '}
+            <span className="font-semibold tabular-nums">${formatMoney(compMensual)}</span> /mes ·{' '}
+            <span className="font-semibold tabular-nums">${formatMoney(round2(compMensual * 12))}</span>{' '}
+            /año (para la empresa)
+          </div>
 
           <DialogFooter className="sm:col-span-2">
             {isEdit && (
