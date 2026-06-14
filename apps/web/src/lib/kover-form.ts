@@ -65,6 +65,13 @@ export const KOVER_BANCOS_VE = [
 
 export const KOVER_TIPOS_CUENTA = ['Corriente', 'Ahorro'] as const;
 
+/** Código de la pregunta-compuerta de buena salud. */
+export const KOVER_GOOD_HEALTH_CODE = 'gh_good_health';
+
+/** Mensaje legal que se muestra al declarar buena salud. */
+export const KOVER_BUENA_SALUD_MSG =
+  'Se refiere a que el asegurado (titular y adicionales) no padezcan, haya padecido, tenga secuelas o complicaciones de algunas o varias de las siguientes enfermedades: Cáncer (Activo o con menos de 5 años en remisión), Lupus Eritematoso Sistémico, Artritis Reumatoidea, Enfermedades Pulmonares, Asma Bronquial, Enfermedades Cardiovasculares, Accidente Cerebro Vascular, Tromboembolismo Pulmonar, Cirrosis hepática, Esclerosis Múltiples, Esclerosis Lateral Amiotrófica, Enfermedad de Parkinson, Diabetes Mellitus, VIH/Sida, Insuficiencia Renal Crónica, Enfermedad de Crohn, Fibrosis quística, Enfermedad de Alzheimer, Epilepsias, Trasplante de órganos mayores, Obesidad. En caso de falsedades y reticencias de mala fe por parte del Tomador, del Asegurado o del Beneficiario en la reclamación del siniestro, serán causa de nulidad absoluta del contrato y exonerarán del pago de la indemnización al Asegurador.';
+
 /** Sección 6: Declaración de salud general (7 preguntas). */
 export const KOVER_PREGUNTAS_SALUD_GENERAL: { code: string; pregunta: string }[] = [
   { code: 'gh_covid', pregunta: '¿Tuvo COVID?' },
