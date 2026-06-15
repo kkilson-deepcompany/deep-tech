@@ -25,6 +25,7 @@ import { NominasPage } from '@/pages/nominas-page';
 import { NominaDetailPage } from '@/pages/nomina-detail-page';
 import { PagoSemanalPage } from '@/pages/pago-semanal-page';
 import { CostoNominaPage } from '@/pages/costo-nomina-page';
+import { LiquidacionesPage } from '@/pages/liquidaciones-page';
 import { GuardiasPage } from '@/pages/guardias-page';
 import { BeneficiosPage } from '@/pages/beneficios-page';
 import { ServiceOrdersPage } from '@/pages/service-orders-page';
@@ -67,6 +68,7 @@ export default function App() {
         <Route path="/nominas/:id" element={<NominaDetailPage />} />
         <Route path="/pago-semanal" element={<PagoSemanalPage />} />
         <Route path="/costo-nomina" element={<CostoNominaPage />} />
+        <Route path="/liquidaciones" element={<LiquidacionesPage />} />
         <Route path="/beneficios" element={<BeneficiosPage />} />
         <Route path="/guardias" element={<GuardiasPage />} />
         <Route path="/ordenes-servicio" element={<ServiceOrdersPage />} />

@@ -5,6 +5,7 @@ import {
   Briefcase,
   CalendarClock,
   CalendarRange,
+  Calculator,
   FileText,
   FolderOpen,
   HeartPulse,
@@ -73,6 +74,7 @@ const NAV_GROUPS: NavGroup[] = [
       { to: '/presupuestos', label: 'Presupuestos', icon: Wallet },
       { to: '/ingresos', label: 'Ingresos', icon: TrendingUp },
       { to: '/costo-nomina', label: 'Costo Nómina', icon: Banknote },
+      { to: '/liquidaciones', label: 'Liquidaciones', icon: Calculator },
     ],
   },
   {
