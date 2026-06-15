@@ -13,11 +13,16 @@ import { EmpresaLogo } from '@/components/empresa-logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const TODAS = '__todas__';
 const SIN_EMPRESA = 'Sin empresa';
+const TODOS_DEPTOS = '__todos__';
+const SIN_DEPTO = 'Sin departamento';
+const ACTIVO_ESTADOS = new Set(['Activo', 'En Prueba']);
 
 export function ColaboradoresPage() {
   const { data, isLoading, isError } = useQuery({
@@ -29,6 +34,8 @@ export function ColaboradoresPage() {
   const [editing, setEditing] = useState<Colaborador | null>(null);
   const [compColab, setCompColab] = useState<Colaborador | null>(null);
   const [activeEmpresa, setActiveEmpresa] = useState<string>(TODAS);
+  const [activeDepto, setActiveDepto] = useState<string>(TODOS_DEPTOS);
+  const [showInactivos, setShowInactivos] = useState(false);
 
   // Empresas derivadas de la data real (no del catálogo de branding) para que
   // valores legacy como "Deepcompany CA" o "Farmatodo" también tengan pestaña.
@@ -43,10 +50,37 @@ export function ColaboradoresPage() {
       .map(([nombre, count]) => ({ nombre, count }));
   }, [data]);
 
-  const filtered = useMemo(() => {
+  // Colaboradores de la empresa activa (base para derivar departamentos).
+  const porEmpresa = useMemo(() => {
     if (activeEmpresa === TODAS) return data ?? [];
     return (data ?? []).filter((c) => (c.empresa ?? SIN_EMPRESA) === activeEmpresa);
   }, [data, activeEmpresa]);
+
+  // Departamentos disponibles dentro de la empresa activa.
+  const departamentos = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const c of porEmpresa) {
+      const key = c.departamento ?? SIN_DEPTO;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [porEmpresa]);
+
+  // Aplica filtro de departamento + ordena por salario mensual (mayor → menor).
+  const filtered = useMemo(() => {
+    const base =
+      activeDepto === TODOS_DEPTOS
+        ? porEmpresa
+        : porEmpresa.filter((c) => (c.departamento ?? SIN_DEPTO) === activeDepto);
+    return [...base].sort(
+      (a, b) =>
+        salarioMensual(b.salario, b.frecuencia_pago) - salarioMensual(a.salario, a.frecuencia_pago),
+    );
+  }, [porEmpresa, activeDepto]);
+
+  // Separa activos (Activo / En Prueba) de inactivos (Inactivo / Egresado).
+  const activos = useMemo(() => filtered.filter((c) => ACTIVO_ESTADOS.has(c.estado)), [filtered]);
+  const inactivos = useMemo(() => filtered.filter((c) => !ACTIVO_ESTADOS.has(c.estado)), [filtered]);
 
   // En "Todas" mostramos la columna empresa; en una específica no (redundante).
   const showEmpresaCol = activeEmpresa === TODAS;
@@ -73,6 +107,56 @@ export function ColaboradoresPage() {
     setDialogOpen(true);
   }
 
+  const renderRow = (c: Colaborador) => (
+    <tr
+      key={c.id}
+      onClick={() => {
+        setEditing(c);
+        setDialogOpen(true);
+      }}
+      className="hover:bg-muted/50 cursor-pointer border-b last:border-0"
+    >
+      <td className="px-4 py-3">
+        <div className="font-medium">{c.nombre}</div>
+        <div className="text-muted-foreground text-xs">{c.correo}</div>
+      </td>
+      <td className="px-4 py-3">{c.cargo}</td>
+      {showEmpresaCol && (
+        <td className="text-muted-foreground px-4 py-3">
+          {c.empresa ? (
+            <span className="inline-flex items-center gap-1.5">
+              <EmpresaLogo nombre={c.empresa} size="sm" fallback="oculto" />
+              {c.empresa}
+            </span>
+          ) : (
+            '—'
+          )}
+        </td>
+      )}
+      <td className="text-muted-foreground px-4 py-3">{c.departamento ?? '—'}</td>
+      <td className="text-muted-foreground px-4 py-3">
+        {c.moneda} {formatMoney(c.salario)}
+      </td>
+      <td className="px-4 py-3">
+        <Badge variant={COLABORADOR_ESTADO_VARIANT[c.estado]}>{c.estado}</Badge>
+      </td>
+      <td className="px-4 py-3 text-right">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={(e) => {
+            e.stopPropagation();
+            setCompColab(c);
+          }}
+        >
+          Compensación
+        </Button>
+      </td>
+    </tr>
+  );
+
+  const colSpan = showEmpresaCol ? 7 : 6;
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
@@ -98,7 +182,10 @@ export function ColaboradoresPage() {
         <div className="flex flex-wrap gap-1 border-b">
           <button
             type="button"
-            onClick={() => setActiveEmpresa(TODAS)}
+            onClick={() => {
+              setActiveEmpresa(TODAS);
+              setActiveDepto(TODOS_DEPTOS);
+            }}
             className={cn(
               'flex items-center gap-2 rounded-t-md border-b-2 px-3 py-2 text-sm font-medium transition-colors',
               activeEmpresa === TODAS
@@ -115,7 +202,10 @@ export function ColaboradoresPage() {
             <button
               key={e.nombre}
               type="button"
-              onClick={() => setActiveEmpresa(e.nombre)}
+              onClick={() => {
+                setActiveEmpresa(e.nombre);
+                setActiveDepto(TODOS_DEPTOS);
+              }}
               className={cn(
                 'flex items-center gap-2 rounded-t-md border-b-2 px-3 py-2 text-sm font-medium transition-colors',
                 activeEmpresa === e.nombre
@@ -132,6 +222,28 @@ export function ColaboradoresPage() {
               </span>
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Filtro por departamento */}
+      {!isLoading && !isError && departamentos.length > 1 && (
+        <div className="flex items-center gap-2">
+          <label htmlFor="depto-filter" className="text-muted-foreground text-sm">
+            Departamento
+          </label>
+          <Select
+            id="depto-filter"
+            value={activeDepto}
+            onChange={(e) => setActiveDepto(e.target.value)}
+            className="w-auto min-w-48"
+          >
+            <option value={TODOS_DEPTOS}>Todos ({porEmpresa.length})</option>
+            {departamentos.map(([nombre, count]) => (
+              <option key={nombre} value={nombre}>
+                {nombre} ({count})
+              </option>
+            ))}
+          </Select>
         </div>
       )}
 
@@ -216,62 +328,45 @@ export function ColaboradoresPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((c) => (
-                  <tr
-                    key={c.id}
-                    onClick={() => {
-                      setEditing(c);
-                      setDialogOpen(true);
-                    }}
-                    className="hover:bg-muted/50 cursor-pointer border-b last:border-0"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{c.nombre}</div>
-                      <div className="text-muted-foreground text-xs">{c.correo}</div>
-                    </td>
-                    <td className="px-4 py-3">{c.cargo}</td>
-                    {showEmpresaCol && (
-                      <td className="text-muted-foreground px-4 py-3">
-                        {c.empresa ? (
-                          <span className="inline-flex items-center gap-1.5">
-                            <EmpresaLogo nombre={c.empresa} size="sm" fallback="oculto" />
-                            {c.empresa}
-                          </span>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                    )}
-                    <td className="text-muted-foreground px-4 py-3">{c.departamento ?? '—'}</td>
-                    <td className="text-muted-foreground px-4 py-3">
-                      {c.moneda} {formatMoney(c.salario)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={COLABORADOR_ESTADO_VARIANT[c.estado]}>{c.estado}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCompColab(c);
-                        }}
+                {activos.map(renderRow)}
+
+                {/* Inactivos: colapsados; se despliegan a solicitud. */}
+                {inactivos.length > 0 && (
+                  <tr className="bg-muted/30">
+                    <td colSpan={colSpan} className="px-4 py-0">
+                      <button
+                        type="button"
+                        onClick={() => setShowInactivos((v) => !v)}
+                        className="text-muted-foreground hover:text-foreground flex w-full items-center gap-1.5 py-2.5 text-sm font-medium"
                       >
-                        Compensación
-                      </Button>
+                        {showInactivos ? (
+                          <ChevronDown className="size-4" />
+                        ) : (
+                          <ChevronRight className="size-4" />
+                        )}
+                        Inactivos y egresados
+                        <span className="bg-muted text-muted-foreground rounded-full px-1.5 text-xs">
+                          {inactivos.length}
+                        </span>
+                      </button>
                     </td>
                   </tr>
-                ))}
+                )}
+                {showInactivos && inactivos.map(renderRow)}
+
                 {filtered.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={showEmpresaCol ? 7 : 6}
-                      className="text-muted-foreground px-4 py-10 text-center"
-                    >
-                      {activeEmpresa === TODAS
+                    <td colSpan={colSpan} className="text-muted-foreground px-4 py-10 text-center">
+                      {activeEmpresa === TODAS && activeDepto === TODOS_DEPTOS
                         ? 'No hay colaboradores. Se crean al activar un contrato o manualmente.'
-                        : `No hay colaboradores en "${activeEmpresa}".`}
+                        : 'No hay colaboradores que coincidan con el filtro.'}
+                    </td>
+                  </tr>
+                )}
+                {filtered.length > 0 && activos.length === 0 && !showInactivos && (
+                  <tr>
+                    <td colSpan={colSpan} className="text-muted-foreground px-4 py-6 text-center text-sm">
+                      No hay colaboradores activos con este filtro. Despliega los inactivos arriba.
                     </td>
                   </tr>
                 )}
