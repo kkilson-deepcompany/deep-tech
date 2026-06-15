@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { cn } from '@/lib/utils';
 import {
   fetchAllBeneficiosColaborador,
   fetchAllPrestamos,
@@ -43,76 +44,89 @@ export function CostoNominaPage() {
   const isLoading =
     colabQ.isLoading || benQ.isLoading || preQ.isLoading || segQ.isLoading || formQ.isLoading || becaQ.isLoading;
 
-  // Beneficios corporativos (catálogos de las pestañas Seguros/Formaciones/Becas).
-  const corp = useMemo(() => {
-    // Prima de seguro = monto ANUAL; el costo mensual contable es anual ÷ 12.
-    const segMensual = round2(
-      (segQ.data ?? []).reduce((s, r) => s + (Number(r.prima_usd) || 0), 0) / 12,
-    );
-    const formAnual = round2((formQ.data ?? []).reduce((s, f) => s + (Number(f.costo_usd) || 0), 0));
-    const becaAnual = round2(
-      (becaQ.data ?? []).reduce(
-        (s, b) => s + ((Number(b.monto_usd) || 0) * (Number(b.pct_cubierto) || 0)) / 100,
-        0,
-      ),
-    );
-    const mensual = round2(segMensual + formAnual / 12 + becaAnual / 12);
-    const anual = round2(segMensual * 12 + formAnual + becaAnual);
-    return { segMensual, formAnual, becaAnual, mensual, anual };
-  }, [segQ.data, formQ.data, becaQ.data]);
+  const [empresa, setEmpresa] = useState('Todas');
+
+  // Lista de empresas (de colaboradores activos) para el selector.
+  const empresasList = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of colabQ.data ?? []) if (ACTIVOS.has(c.estado)) set.add(c.empresa || '—');
+    return [...set].sort();
+  }, [colabQ.data]);
 
   const data = useMemo(() => {
-    const colaboradores = (colabQ.data ?? []).filter((c) => ACTIVOS.has(c.estado));
-    const beneficios = benQ.data ?? [];
-    const prestamos = preQ.data ?? [];
+    const activos = (colabQ.data ?? []).filter(
+      (c) => ACTIVOS.has(c.estado) && (empresa === 'Todas' || (c.empresa || '—') === empresa),
+    );
+    const ids = new Set(activos.map((c) => c.id));
+    const enEmpresa = (colaboradorId: string | null | undefined) =>
+      colaboradorId != null && ids.has(colaboradorId);
 
-    const benByColab = new Map<string, { mensual: number; anual: number }>();
-    for (const b of beneficios) {
-      if (!b.activo) continue;
-      const cur = benByColab.get(b.colaborador_id) ?? { mensual: 0, anual: 0 };
-      cur.mensual += beneficioMensual(Number(b.costo_empresa) || 0, b.periodicidad);
-      cur.anual += beneficioAnual(Number(b.costo_empresa) || 0, b.periodicidad);
-      benByColab.set(b.colaborador_id, cur);
+    // Beneficios particulares por colaborador.
+    const benByColab = new Map<string, number>();
+    let benColabMensual = 0;
+    let benColabAnual = 0;
+    for (const b of benQ.data ?? []) {
+      if (!b.activo || !enEmpresa(b.colaborador_id)) continue;
+      const men = beneficioMensual(Number(b.costo_empresa) || 0, b.periodicidad);
+      benColabMensual += men;
+      benColabAnual += beneficioAnual(Number(b.costo_empresa) || 0, b.periodicidad);
+      benByColab.set(b.colaborador_id, (benByColab.get(b.colaborador_id) ?? 0) + men);
     }
-    const dedByColab = new Map<string, number>();
-    for (const p of prestamos) {
-      dedByColab.set(p.colaborador_id, (dedByColab.get(p.colaborador_id) ?? 0) + cuotaMensualPrestamo(p));
+
+    // Préstamos (deducciones) de la empresa.
+    let dedMensual = 0;
+    for (const p of preQ.data ?? []) {
+      if (enEmpresa(p.colaborador_id)) dedMensual += cuotaMensualPrestamo(p);
     }
 
-    const activos = new Set(colaboradores.map((c) => c.id));
-    const nominaMensual = round2(colaboradores.reduce((s, c) => s + (Number(c.salario) || 0), 0));
-    const benMensual = round2(
-      [...benByColab.entries()].filter(([id]) => activos.has(id)).reduce((s, [, v]) => s + v.mensual, 0),
-    );
-    const benAnual = round2(
-      [...benByColab.entries()].filter(([id]) => activos.has(id)).reduce((s, [, v]) => s + v.anual, 0),
-    );
-    const dedMensual = round2(
-      [...dedByColab.entries()].filter(([id]) => activos.has(id)).reduce((s, [, v]) => s + v, 0),
-    );
+    // Beneficios corporativos vinculados a colaboradores de la empresa.
+    const segAnual = (segQ.data ?? [])
+      .filter((s) => enEmpresa(s.colaborador_id))
+      .reduce((s, r) => s + (Number(r.prima_usd) || 0), 0);
+    const formAnual = (formQ.data ?? [])
+      .filter((f) => enEmpresa(f.colaborador_id))
+      .reduce((s, f) => s + (Number(f.costo_usd) || 0), 0);
+    const becaAnual = (becaQ.data ?? [])
+      .filter((b) => enEmpresa(b.colaborador_id))
+      .reduce((s, b) => s + ((Number(b.monto_usd) || 0) * (Number(b.pct_cubierto) || 0)) / 100, 0);
 
-    // Agrupado por empresa.
+    const corpMensual = round2(segAnual / 12 + formAnual / 12 + becaAnual / 12);
+    const corpAnual = round2(segAnual + formAnual + becaAnual);
+
+    const nominaMensual = round2(activos.reduce((s, c) => s + (Number(c.salario) || 0), 0));
+    const benMensual = round2(benColabMensual + corpMensual);
+    const benAnual = round2(benColabAnual + corpAnual);
+    const grandMensual = round2(nominaMensual + benMensual);
+    const grandAnual = round2(nominaMensual * 12 + benAnual);
+
+    // Desglose por empresa (siempre sobre todos los activos, para ver la división).
     const porEmpresa = new Map<string, { n: number; nomina: number; ben: number }>();
-    for (const c of colaboradores) {
+    for (const c of (colabQ.data ?? []).filter((x) => ACTIVOS.has(x.estado))) {
       const key = c.empresa || '—';
       const cur = porEmpresa.get(key) ?? { n: 0, nomina: 0, ben: 0 };
       cur.n += 1;
       cur.nomina += Number(c.salario) || 0;
-      cur.ben += benByColab.get(c.id)?.mensual ?? 0;
+      cur.ben += benByColab.get(c.id) ?? 0;
       porEmpresa.set(key, cur);
     }
 
     return {
-      count: colaboradores.length,
+      count: activos.length,
       nominaMensual,
+      benColabMensual: round2(benColabMensual),
+      benColabAnual: round2(benColabAnual),
+      corpMensual,
+      segMensual: round2(segAnual / 12),
+      formAnual: round2(formAnual),
+      becaAnual: round2(becaAnual),
       benMensual,
       benAnual,
-      dedMensual,
-      costoMensual: round2(nominaMensual + benMensual),
-      costoAnual: round2(nominaMensual * 12 + benAnual),
+      dedMensual: round2(dedMensual),
+      grandMensual,
+      grandAnual,
       empresas: [...porEmpresa.entries()]
-        .map(([empresa, v]) => ({
-          empresa,
+        .map(([emp, v]) => ({
+          empresa: emp,
           n: v.n,
           nomina: round2(v.nomina),
           ben: round2(v.ben),
@@ -120,7 +134,7 @@ export function CostoNominaPage() {
         }))
         .sort((a, b) => b.total - a.total),
     };
-  }, [colabQ.data, benQ.data, preQ.data]);
+  }, [colabQ.data, benQ.data, preQ.data, segQ.data, formQ.data, becaQ.data, empresa]);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -130,27 +144,36 @@ export function CostoNominaPage() {
         description="Costo total de la empresa por tener al equipo: compensación + beneficios asignados, mensual y anual. Incluye solo colaboradores activos y en prueba."
       />
 
+      {/* Selector de empresa */}
+      {!isLoading && (
+        <div className="bg-muted/50 flex w-fit flex-wrap gap-1 rounded-md border p-1">
+          {['Todas', ...empresasList].map((e) => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => setEmpresa(e)}
+              className={cn(
+                'rounded px-3 py-1.5 text-sm font-medium transition-colors',
+                empresa === e ? 'bg-card shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
+
       {isLoading ? (
         <Skeleton className="h-40 w-full" />
       ) : (
-        (() => {
-          const grandMensual = round2(data.nominaMensual + data.benMensual + corp.mensual);
-          const grandAnual = round2(data.nominaMensual * 12 + data.benAnual + corp.anual);
-          return (
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <Kpi label="Nómina mensual" value={`$${formatMoney(data.nominaMensual)}`} />
-            <Kpi
-              label="Beneficios mensual"
-              value={`$${formatMoney(round2(data.benMensual + corp.mensual))}`}
-            />
-            <Kpi label="Costo total mensual" value={`$${formatMoney(grandMensual)}`} tone="primary" />
+            <Kpi label="Beneficios mensual" value={`$${formatMoney(data.benMensual)}`} />
+            <Kpi label="Costo total mensual" value={`$${formatMoney(data.grandMensual)}`} tone="primary" />
             <Kpi label="Nómina anual" value={`$${formatMoney(round2(data.nominaMensual * 12))}`} />
-            <Kpi
-              label="Beneficios anual"
-              value={`$${formatMoney(round2(data.benAnual + corp.anual))}`}
-            />
-            <Kpi label="Costo total anual" value={`$${formatMoney(grandAnual)}`} tone="primary" />
+            <Kpi label="Beneficios anual" value={`$${formatMoney(data.benAnual)}`} />
+            <Kpi label="Costo total anual" value={`$${formatMoney(data.grandAnual)}`} tone="primary" />
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <Kpi label="Colaboradores activos" value={String(data.count)} />
@@ -161,7 +184,7 @@ export function CostoNominaPage() {
             />
             <Kpi
               label="Costo prom. por colaborador / mes"
-              value={`$${formatMoney(data.count ? round2(grandMensual / data.count) : 0)}`}
+              value={`$${formatMoney(data.count ? round2(data.grandMensual / data.count) : 0)}`}
             />
           </div>
 
@@ -171,7 +194,7 @@ export function CostoNominaPage() {
               <table className="w-full text-sm">
                 <thead className="text-muted-foreground border-b text-left text-xs uppercase tracking-wide">
                   <tr>
-                    <th className="px-4 py-3">Componente</th>
+                    <th className="px-4 py-3">Componente {empresa !== 'Todas' && `· ${empresa}`}</th>
                     <th className="px-4 py-3 text-right">Mensual</th>
                     <th className="px-4 py-3 text-right">Anual</th>
                   </tr>
@@ -184,30 +207,30 @@ export function CostoNominaPage() {
                   </tr>
                   <tr className="border-b">
                     <td className="px-4 py-3">Beneficios por colaborador</td>
-                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(data.benMensual)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(data.benAnual)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(data.benColabMensual)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(data.benColabAnual)}</td>
                   </tr>
                   <tr className="border-b">
                     <td className="px-4 py-3 pl-8">· Seguros (primas)</td>
-                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(corp.segMensual)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(round2(corp.segMensual * 12))}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(data.segMensual)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(round2(data.segMensual * 12))}</td>
                   </tr>
                   <tr className="border-b">
                     <td className="px-4 py-3 pl-8">· Formaciones</td>
-                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(round2(corp.formAnual / 12))}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(corp.formAnual)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(round2(data.formAnual / 12))}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(data.formAnual)}</td>
                   </tr>
                   <tr className="border-b">
                     <td className="px-4 py-3 pl-8">· Becas</td>
-                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(round2(corp.becaAnual / 12))}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(corp.becaAnual)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(round2(data.becaAnual / 12))}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(data.becaAnual)}</td>
                   </tr>
                 </tbody>
                 <tfoot className="border-t font-semibold">
                   <tr>
                     <td className="px-4 py-3">Costo total</td>
-                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(grandMensual)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(grandAnual)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(data.grandMensual)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">${formatMoney(data.grandAnual)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -243,8 +266,6 @@ export function CostoNominaPage() {
             </CardContent>
           </Card>
         </>
-          );
-        })()
       )}
     </div>
   );
