@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ban, CheckCircle2, Copy, FileText, Link2, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Ban, CheckCircle2, Copy, Download, FileText, Link2, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import {
@@ -10,6 +10,7 @@ import {
   revokeKoverPublicToken,
 } from '@/lib/queries';
 import { EMPTY_KOVER_FORM, type KoverFormData, type KoverSolicitud } from '@/lib/kover-form';
+import { generarKoverPdf } from '@/lib/kover-pdf';
 import { KoverForm } from '@/components/kover-form';
 import { PageHeader } from '@/components/page-header';
 import {
@@ -357,6 +358,20 @@ export function BeneficiosPage() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          title="Descargar PDF (todo lo declarado)"
+                          onClick={async () => {
+                            try {
+                              await generarKoverPdf(s);
+                            } catch {
+                              toast.error('No se pudo generar el PDF.');
+                            }
+                          }}
+                          className="text-muted-foreground hover:text-primary p-1"
+                        >
+                          <Download className="size-4" />
+                        </button>
                         <button
                           type="button"
                           title={
