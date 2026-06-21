@@ -726,9 +726,12 @@ export async function buildConsultingAgreementDoc(data: ConsultingAgreementData)
   return doc;
 }
 
-/** Genera y descarga el Consulting Agreement (Deepcompany LLC, US). */
-export async function generarConsultingAgreementPdf(data: ConsultingAgreementData): Promise<void> {
+/** Genera el Consulting Agreement (Deepcompany LLC, US) como Blob + nombre de archivo.
+ *  No descarga: el llamador decide descargar y/o archivar en el expediente. */
+export async function generarConsultingAgreementPdf(
+  data: ConsultingAgreementData,
+): Promise<{ blob: Blob; filename: string }> {
   const doc = await buildConsultingAgreementDoc(data);
   const safe = data.consultantName.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'consultant';
-  doc.save(`consulting-agreement-${safe}.pdf`);
+  return { blob: doc.output('blob') as Blob, filename: `consulting-agreement-${safe}.pdf` };
 }

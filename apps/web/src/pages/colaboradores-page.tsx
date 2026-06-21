@@ -7,6 +7,7 @@ import type { Colaborador } from '@/lib/domain';
 import { colaboradoresSpec } from '@/lib/import-specs';
 import { PageHeader } from '@/components/page-header';
 import { ColaboradorDialog } from '@/components/colaborador-dialog';
+import { ColaboradorContratosDialog } from '@/components/colaborador-contratos-dialog';
 import { CompensacionDialog } from '@/components/compensacion-dialog';
 import { BulkImportDialog } from '@/components/bulk-import-dialog';
 import { EmpresaLogo } from '@/components/empresa-logo';
@@ -33,6 +34,7 @@ export function ColaboradoresPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<Colaborador | null>(null);
   const [compColab, setCompColab] = useState<Colaborador | null>(null);
+  const [contratosColab, setContratosColab] = useState<Colaborador | null>(null);
   const [activeEmpresa, setActiveEmpresa] = useState<string>(TODAS);
   const [activeDepto, setActiveDepto] = useState<string>(TODOS_DEPTOS);
   const [showInactivos, setShowInactivos] = useState(false);
@@ -141,16 +143,28 @@ export function ColaboradoresPage() {
         <Badge variant={COLABORADOR_ESTADO_VARIANT[c.estado]}>{c.estado}</Badge>
       </td>
       <td className="px-4 py-3 text-right">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={(e) => {
-            e.stopPropagation();
-            setCompColab(c);
-          }}
-        >
-          Compensación
-        </Button>
+        <div className="flex justify-end gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              setContratosColab(c);
+            }}
+          >
+            Contratos
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCompColab(c);
+            }}
+          >
+            Compensación
+          </Button>
+        </div>
       </td>
     </tr>
   );
@@ -376,9 +390,27 @@ export function ColaboradoresPage() {
         </CardContent>
       </Card>
 
-      <ColaboradorDialog open={dialogOpen} onOpenChange={setDialogOpen} colaborador={editing} />
+      <ColaboradorDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        colaborador={editing}
+        onOpenContratos={
+          editing
+            ? () => {
+                setDialogOpen(false);
+                setContratosColab(editing);
+              }
+            : undefined
+        }
+      />
       {compColab && (
         <CompensacionDialog colaborador={compColab} onClose={() => setCompColab(null)} />
+      )}
+      {contratosColab && (
+        <ColaboradorContratosDialog
+          colaborador={contratosColab}
+          onClose={() => setContratosColab(null)}
+        />
       )}
       <BulkImportDialog
         open={importOpen}

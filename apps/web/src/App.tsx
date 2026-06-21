@@ -14,6 +14,7 @@ import { VacantesPage } from '@/pages/vacantes-page';
 import { ColaboradoresPage } from '@/pages/colaboradores-page';
 import { OrganigramaPage } from '@/pages/organigrama-page';
 import { ContratosPage } from '@/pages/contratos-page';
+import { PlantillasPage } from '@/pages/plantillas-page';
 import { DocumentosPage } from '@/pages/documentos-page';
 import { GastosPage } from '@/pages/gastos-page';
 import { RecordatoriosPage } from '@/pages/recordatorios-page';
@@ -57,6 +58,7 @@ export default function App() {
         <Route path="/colaboradores" element={<ColaboradoresPage />} />
         <Route path="/organigrama" element={<OrganigramaPage />} />
         <Route path="/contratos" element={<ContratosPage />} />
+        <Route path="/plantillas" element={<PlantillasPage />} />
         <Route path="/documentos" element={<DocumentosPage />} />
         <Route path="/gastos" element={<GastosPage />} />
         <Route path="/recordatorios" element={<RecordatoriosPage />} />

@@ -152,6 +152,76 @@ export const CONTRATO_PLANTILLAS = [
 ] as const;
 export type ContratoPlantilla = (typeof CONTRATO_PLANTILLAS)[number];
 
+/** Una cláusula de una plantilla no-code: título + cuerpo (admiten tokens {{...}}). */
+export interface PlantillaClausula {
+  titulo: string;
+  cuerpo: string;
+}
+
+/** Cuerpo de una plantilla de contrato no-code (se guarda como jsonb). */
+export interface PlantillaCuerpo {
+  titulo_doc: string;
+  subtitulo: string;
+  intro: string;
+  clausulas: PlantillaClausula[];
+  cierre: string;
+  firma_izquierda: string;
+  firma_derecha: string;
+}
+
+/** Plantilla de contrato editable por RRHH (gestor no-code). */
+export interface ContratoPlantillaCustom {
+  id: string;
+  nombre: string;
+  empresa: string | null;
+  idioma: string;
+  activo: boolean;
+  cuerpo: PlantillaCuerpo;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Tokens disponibles en el editor de plantillas (paleta + sustitución en el PDF). */
+export const PLANTILLA_TOKENS: { token: string; descripcion: string }[] = [
+  { token: '{{empresa}}', descripcion: 'Nombre de la empresa' },
+  { token: '{{numero}}', descripcion: 'Número de contrato' },
+  { token: '{{trabajador}}', descripcion: 'Nombre del trabajador / consultor' },
+  { token: '{{cedula}}', descripcion: 'Cédula / identificación' },
+  { token: '{{cargo}}', descripcion: 'Cargo' },
+  { token: '{{departamento}}', descripcion: 'Departamento' },
+  { token: '{{proyecto}}', descripcion: 'Proyecto' },
+  { token: '{{salario}}', descripcion: 'Salario / honorarios (formateado)' },
+  { token: '{{dia_pago}}', descripcion: 'Día de pago' },
+  { token: '{{fecha_inicio}}', descripcion: 'Fecha de inicio' },
+  { token: '{{fecha_fin}}', descripcion: 'Fecha de fin' },
+  { token: '{{periodo_prueba_dias}}', descripcion: 'Días de periodo de prueba' },
+  { token: '{{duracion_meses}}', descripcion: 'Vigencia en meses' },
+];
+
+/** Cuerpo por defecto al crear una plantilla nueva. */
+export const PLANTILLA_CUERPO_DEFAULT: PlantillaCuerpo = {
+  titulo_doc: 'CONTRATO',
+  subtitulo: 'N.° {{numero}}',
+  intro:
+    'Entre {{empresa}}, en lo sucesivo «LA EMPRESA», y {{trabajador}}, titular de la cédula ' +
+    'N.° {{cedula}}, en lo sucesivo «EL TRABAJADOR», se celebra el presente contrato bajo las ' +
+    'cláusulas siguientes:',
+  clausulas: [
+    { titulo: 'PRIMERA — DEL CARGO', cuerpo: 'EL TRABAJADOR desempeñará el cargo de {{cargo}}.' },
+    {
+      titulo: 'SEGUNDA — DE LA DURACIÓN',
+      cuerpo: 'Desde el {{fecha_inicio}} hasta el {{fecha_fin}}.',
+    },
+    {
+      titulo: 'TERCERA — DE LA REMUNERACIÓN',
+      cuerpo: 'Remuneración de {{salario}}, pagadera el día {{dia_pago}} de cada periodo.',
+    },
+  ],
+  cierre: '',
+  firma_izquierda: 'LA EMPRESA',
+  firma_derecha: 'EL TRABAJADOR',
+};
+
 type BadgeTone = 'accent' | 'secondary' | 'muted' | 'outline' | 'destructive';
 
 export const COLABORADOR_ESTADO_VARIANT: Record<ColaboradorEstado, BadgeTone> = {
@@ -251,6 +321,7 @@ export interface Contrato {
   dia_pago: string;
   estado: ContratoEstado;
   plantilla: ContratoPlantilla;
+  plantilla_id: string | null;
   duracion_meses: number | null;
   beneficios_exhibit_b: string | null;
   exhibit_b_label: string;
@@ -293,6 +364,20 @@ export interface Documento {
   observaciones: string | null;
   formulario_completado: boolean;
   carpeta_id: string | null;
+  created_at: string;
+}
+
+/** Archivo del expediente de una persona (contrato archivado, constancia, etc.). */
+export interface ExpedienteArchivo {
+  id: string;
+  colaborador_id: string | null;
+  candidato_id: string | null;
+  contrato_id: string | null;
+  tipo: string;
+  nombre: string;
+  storage_path: string;
+  mime_type: string;
+  size_bytes: number;
   created_at: string;
 }
 

@@ -9,8 +9,10 @@ import type {
   Colaborador,
   ColaboradorSeguro,
   Contrato,
+  ContratoPlantillaCustom,
   Documento,
   EmpresaBranding,
+  ExpedienteArchivo,
   Expense,
   FideicomisoSaldo,
   Formacion,
@@ -246,6 +248,15 @@ export async function fetchContratos(): Promise<Contrato[]> {
   return (data ?? []) as Contrato[];
 }
 
+export async function fetchContratoPlantillas(): Promise<ContratoPlantillaCustom[]> {
+  const { data, error } = await supabase
+    .from('contrato_plantillas')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as ContratoPlantillaCustom[];
+}
+
 export async function fetchDocumentos(): Promise<Documento[]> {
   const { data, error } = await supabase
     .from('documentos')
@@ -253,6 +264,42 @@ export async function fetchDocumentos(): Promise<Documento[]> {
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as Documento[];
+}
+
+export async function fetchExpedienteArchivos(): Promise<ExpedienteArchivo[]> {
+  const { data, error } = await supabase
+    .from('expediente_archivos')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as ExpedienteArchivo[];
+}
+
+/** Sube el PDF de un contrato al bucket privado `contratos`. Usa una ruta estable
+ *  por contrato con upsert para no duplicar el blob al re-archivar. Devuelve la
+ *  ruta dentro del bucket. */
+export async function uploadContratoPdf(params: {
+  contratoId: string;
+  blob: Blob;
+  filename: string;
+}): Promise<string> {
+  const safe = params.filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${params.contratoId}/${safe}`;
+  const { error } = await supabase.storage
+    .from('contratos')
+    .upload(path, params.blob, { contentType: 'application/pdf', upsert: true });
+  if (error) throw new Error(error.message);
+  return path;
+}
+
+/** URL firmada (1 h) para descargar un archivo del expediente (bucket `contratos`). */
+export async function signedUrlExpediente(storagePath: string): Promise<string> {
+  const { data, error } = await supabase.storage
+    .from('contratos')
+    .createSignedUrl(storagePath, 3600);
+  if (error || !data?.signedUrl)
+    throw new Error(error?.message ?? 'No se pudo generar el enlace.');
+  return data.signedUrl;
 }
 
 export async function fetchCarpetas(): Promise<Carpeta[]> {

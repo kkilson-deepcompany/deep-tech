@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { FileSignature, Trash2 } from 'lucide-react';
+import { FileSignature, FileText, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import {
@@ -118,9 +118,16 @@ interface ColaboradorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   colaborador: Colaborador | null;
+  /** Abre el panel de contratos de este colaborador (solo en modo edición). */
+  onOpenContratos?: () => void;
 }
 
-export function ColaboradorDialog({ open, onOpenChange, colaborador }: ColaboradorDialogProps) {
+export function ColaboradorDialog({
+  open,
+  onOpenChange,
+  colaborador,
+  onOpenContratos,
+}: ColaboradorDialogProps) {
   const queryClient = useQueryClient();
   const dialog = useDialog();
   const isEdit = colaborador !== null;
@@ -345,6 +352,17 @@ export function ColaboradorDialog({ open, onOpenChange, colaborador }: Colaborad
           </FormField>
 
           <DialogFooter className="sm:col-span-2">
+            {isEdit && onOpenContratos && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={onOpenContratos}
+              >
+                <FileText />
+                Contratos
+              </Button>
+            )}
             {isEdit && colaborador && (
               <Button
                 type="button"

@@ -1,12 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { FileDown, Trash2 } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Archive, FileDown, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { CONTRATO_ESTADOS, CONTRATO_PLANTILLAS, nullifyEmpty } from '@/lib/domain';
 import type { Candidato, Colaborador, Contrato } from '@/lib/domain';
 import { generarContratoPdf } from '@/lib/contrato-pdf';
+import { fetchContratoPlantillas, uploadContratoPdf } from '@/lib/queries';
 import {
   Dialog,
   DialogContent,
@@ -38,30 +39,33 @@ type ContratoFormValues = {
   salario: string;
   dia_pago: string;
   estado: string;
-  plantilla: string;
+  /** Selección del dropdown: enum built-in (ej. "Por Proyecto") o `custom:<id>`. */
+  plantilla_sel: string;
   duracion_meses: string;
   beneficios_exhibit_b: string;
   exhibit_b_label: string;
   notas: string;
 };
 
-function toFormValues(c: Contrato | null): ContratoFormValues {
+function toFormValues(c: Contrato | null, prefill?: Colaborador | null): ContratoFormValues {
+  // El prefill solo aplica al crear (c === null): precarga datos del colaborador.
+  const p = c ? null : prefill;
   return {
     numero: c?.numero ?? '',
     candidato_id: c?.candidato_id ?? '',
-    colaborador_id: c?.colaborador_id ?? '',
-    empresa: c?.empresa ?? '',
-    proyecto: c?.proyecto ?? '',
-    departamento: c?.departamento ?? '',
-    cargo: c?.cargo ?? '',
+    colaborador_id: c?.colaborador_id ?? p?.id ?? '',
+    empresa: c?.empresa ?? p?.empresa ?? '',
+    proyecto: c?.proyecto ?? p?.proyecto ?? '',
+    departamento: c?.departamento ?? p?.departamento ?? '',
+    cargo: c?.cargo ?? p?.cargo ?? '',
     fecha_inicio: c?.fecha_inicio ?? '',
     fecha_fin: c?.fecha_fin ?? '',
     periodo_prueba_dias: c ? String(c.periodo_prueba_dias) : '90',
     fin_periodo_prueba: c?.fin_periodo_prueba ?? '',
-    salario: c?.salario ?? '',
-    dia_pago: c?.dia_pago ?? '30',
+    salario: c?.salario ?? p?.salario ?? '',
+    dia_pago: c?.dia_pago ?? p?.dia_pago ?? '30',
     estado: c?.estado ?? 'En Prueba',
-    plantilla: c?.plantilla ?? 'Tiempo Determinado',
+    plantilla_sel: c?.plantilla_id ? `custom:${c.plantilla_id}` : (c?.plantilla ?? 'Tiempo Determinado'),
     duracion_meses: c?.duracion_meses != null ? String(c.duracion_meses) : '3',
     beneficios_exhibit_b: c?.beneficios_exhibit_b ?? '',
     exhibit_b_label: c?.exhibit_b_label ?? 'Additional benefits',
@@ -75,6 +79,8 @@ interface ContratoDialogProps {
   contrato: Contrato | null;
   candidatos: Candidato[];
   colaboradores: Colaborador[];
+  /** Al crear (contrato === null), precarga empresa/cargo/etc. desde este colaborador. */
+  prefillColaborador?: Colaborador | null;
 }
 
 export function ContratoDialog({
@@ -83,24 +89,44 @@ export function ContratoDialog({
   contrato,
   candidatos,
   colaboradores,
+  prefillColaborador,
 }: ContratoDialogProps) {
   const queryClient = useQueryClient();
   const dialog = useDialog();
   const isEdit = contrato !== null;
+  const [archivando, setArchivando] = useState(false);
+  const plantillasQuery = useQuery({
+    queryKey: ['contrato_plantillas'],
+    queryFn: fetchContratoPlantillas,
+  });
+  const plantillas = plantillasQuery.data ?? [];
+  // En el selector mostramos las activas + la actualmente asignada (aunque esté inactiva).
+  const customOptions = plantillas.filter(
+    (p) => p.activo || p.id === contrato?.plantilla_id,
+  );
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<ContratoFormValues>({ defaultValues: toFormValues(contrato) });
+  } = useForm<ContratoFormValues>({ defaultValues: toFormValues(contrato, prefillColaborador) });
 
   useEffect(() => {
-    if (open) reset(toFormValues(contrato));
-  }, [open, contrato, reset]);
+    if (open) reset(toFormValues(contrato, prefillColaborador));
+  }, [open, contrato, prefillColaborador, reset]);
 
   const save = useMutation({
     mutationFn: async (values: ContratoFormValues) => {
-      const payload = nullifyEmpty(values);
+      const { plantilla_sel, ...rest } = values;
+      const payload = nullifyEmpty(rest) as Record<string, unknown>;
+      if (plantilla_sel.startsWith('custom:')) {
+        payload.plantilla_id = plantilla_sel.slice('custom:'.length);
+        // El enum sigue siendo NOT NULL; conservamos uno válido (no se usa al generar custom).
+        payload.plantilla = contrato?.plantilla ?? 'Tiempo Determinado';
+      } else {
+        payload.plantilla = plantilla_sel;
+        payload.plantilla_id = null;
+      }
       const { error } =
         isEdit && contrato
           ? await supabase.from('contratos').update(payload).eq('id', contrato.id)
@@ -134,16 +160,26 @@ export function ContratoDialog({
 
   const busy = save.isPending || remove.isPending;
 
-  async function descargarPdf() {
-    if (!contrato) return;
+  /** Genera el PDF del contrato según su plantilla y lo devuelve como Blob. */
+  async function generarPdf(): Promise<{ blob: Blob; filename: string } | null> {
+    if (!contrato) return null;
     const colab = colaboradores.find((c) => c.id === contrato.colaborador_id);
     const cand = candidatos.find((c) => c.id === contrato.candidato_id);
     const trabajador = colab?.nombre ?? cand?.nombre ?? '__________________';
     const cedula = colab?.cedula ?? cand?.cedula ?? null;
-    try {
-      if (contrato.plantilla === 'Deepcompany LLC (US)') {
+    const params = { contrato, trabajador, cedula };
+    // Plantilla custom (no-code): el motor de tokens tiene prioridad sobre el enum.
+    if (contrato.plantilla_id) {
+      const plantilla = plantillas.find((p) => p.id === contrato.plantilla_id);
+      if (plantilla) {
+        const { generarPlantillaPdf } = await import('@/lib/plantilla-pdf');
+        return generarPlantillaPdf({ ...params, plantilla });
+      }
+    }
+    switch (contrato.plantilla) {
+      case 'Deepcompany LLC (US)': {
         const { generarConsultingAgreementPdf } = await import('@/lib/consulting-agreement-pdf');
-        await generarConsultingAgreementPdf({
+        return generarConsultingAgreementPdf({
           consultantName: trabajador,
           cargo: contrato.cargo,
           effectiveDate: contrato.fecha_inicio,
@@ -153,11 +189,86 @@ export function ContratoDialog({
           beneficiosLabel: contrato.exhibit_b_label,
           cedula,
         });
-      } else {
-        await generarContratoPdf({ contrato, trabajador, cedula });
       }
+      case 'Tiempo Determinado':
+      case 'Deepcompany CA (VE)': {
+        const { generarContratoLotttPdf } = await import('@/lib/contrato-lottt-pdf');
+        return generarContratoLotttPdf(params);
+      }
+      case 'Por Proyecto': {
+        const { generarContratoProyectoPdf } = await import('@/lib/contrato-proyecto-pdf');
+        return generarContratoProyectoPdf(params);
+      }
+      case 'Prestacion Servicios': {
+        const { generarContratoServiciosPdf } = await import('@/lib/contrato-servicios-pdf');
+        return generarContratoServiciosPdf(params);
+      }
+      default:
+        return generarContratoPdf(params);
+    }
+  }
+
+  function descargarBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function descargarPdf() {
+    try {
+      const res = await generarPdf();
+      if (res) descargarBlob(res.blob, res.filename);
     } catch {
       toast.error('No se pudo generar el PDF del contrato.');
+    }
+  }
+
+  /** Sube el PDF al bucket privado y lo registra en el expediente del colaborador. */
+  async function archivarEnExpediente() {
+    if (!contrato) return;
+    if (!contrato.colaborador_id) {
+      toast.error('Asocia un colaborador al contrato para archivarlo en su expediente.');
+      return;
+    }
+    setArchivando(true);
+    try {
+      const res = await generarPdf();
+      if (!res) return;
+      const path = await uploadContratoPdf({
+        contratoId: contrato.id,
+        blob: res.blob,
+        filename: res.filename,
+      });
+      // Reemplaza el registro anterior de este contrato para no duplicar.
+      await supabase
+        .from('expediente_archivos')
+        .delete()
+        .eq('contrato_id', contrato.id)
+        .eq('tipo', 'contrato');
+      const { error: insErr } = await supabase.from('expediente_archivos').insert({
+        colaborador_id: contrato.colaborador_id,
+        candidato_id: contrato.candidato_id,
+        contrato_id: contrato.id,
+        tipo: 'contrato',
+        nombre: res.filename,
+        storage_path: path,
+        mime_type: 'application/pdf',
+        size_bytes: res.blob.size,
+      });
+      if (insErr) throw new Error(insErr.message);
+      await supabase.from('contratos').update({ documento_url: path }).eq('id', contrato.id);
+      void queryClient.invalidateQueries({ queryKey: ['expediente_archivos'] });
+      void queryClient.invalidateQueries({ queryKey: ['contratos'] });
+      toast.success('Contrato archivado en el expediente.');
+    } catch {
+      toast.error('No se pudo archivar el contrato en el expediente.');
+    } finally {
+      setArchivando(false);
     }
   }
 
@@ -226,13 +337,24 @@ export function ContratoDialog({
             <Input id="proyecto" {...register('proyecto')} />
           </FormField>
 
-          <FormField label="Plantilla" htmlFor="plantilla">
-            <Select id="plantilla" {...register('plantilla')}>
-              {CONTRATO_PLANTILLAS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
+          <FormField label="Plantilla" htmlFor="plantilla_sel">
+            <Select id="plantilla_sel" {...register('plantilla_sel')}>
+              <optgroup label="Plantillas fieles">
+                {CONTRATO_PLANTILLAS.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </optgroup>
+              {customOptions.length > 0 && (
+                <optgroup label="Plantillas personalizadas">
+                  {customOptions.map((p) => (
+                    <option key={p.id} value={`custom:${p.id}`}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </Select>
           </FormField>
 
@@ -347,11 +469,22 @@ export function ContratoDialog({
                 type="button"
                 variant="outline"
                 className="sm:mr-auto"
-                disabled={busy}
+                disabled={busy || archivando}
                 onClick={() => void descargarPdf()}
               >
                 <FileDown />
                 Descargar PDF
+              </Button>
+            )}
+            {isEdit && contrato?.colaborador_id && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy || archivando}
+                onClick={() => void archivarEnExpediente()}
+              >
+                {archivando ? <Spinner className="size-4" /> : <Archive />}
+                Archivar en expediente
               </Button>
             )}
             {isEdit && (

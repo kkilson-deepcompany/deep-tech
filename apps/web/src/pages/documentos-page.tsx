@@ -1,9 +1,17 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { FolderCog, Plus } from 'lucide-react';
-import { fetchCandidatos, fetchCarpetas, fetchDocumentos } from '@/lib/queries';
+import { Download, FolderCog, Plus } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  fetchCandidatos,
+  fetchCarpetas,
+  fetchColaboradores,
+  fetchDocumentos,
+  fetchExpedienteArchivos,
+  signedUrlExpediente,
+} from '@/lib/queries';
 import { DOCUMENTO_REVISION_VARIANT, formatDate } from '@/lib/domain';
-import type { Documento } from '@/lib/domain';
+import type { Documento, ExpedienteArchivo } from '@/lib/domain';
 import { PageHeader } from '@/components/page-header';
 import { DocumentoDialog } from '@/components/documento-dialog';
 import { CarpetasDialog } from '@/components/carpetas-dialog';
@@ -17,6 +25,14 @@ export function DocumentosPage() {
   const documentosQuery = useQuery({ queryKey: ['documentos'], queryFn: fetchDocumentos });
   const candidatosQuery = useQuery({ queryKey: ['candidatos'], queryFn: fetchCandidatos });
   const carpetasQuery = useQuery({ queryKey: ['carpetas'], queryFn: fetchCarpetas });
+  const archivosQuery = useQuery({
+    queryKey: ['expediente_archivos'],
+    queryFn: fetchExpedienteArchivos,
+  });
+  const colaboradoresQuery = useQuery({
+    queryKey: ['colaboradores'],
+    queryFn: fetchColaboradores,
+  });
 
   const [filter, setFilter] = useState('all');
   const [docDialogOpen, setDocDialogOpen] = useState(false);
@@ -34,6 +50,23 @@ export function DocumentosPage() {
     for (const c of carpetasQuery.data ?? []) map.set(c.id, c.nombre);
     return map;
   }, [carpetasQuery.data]);
+
+  const colaboradorNombre = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of colaboradoresQuery.data ?? []) map.set(c.id, c.nombre);
+    return map;
+  }, [colaboradoresQuery.data]);
+
+  const archivos = archivosQuery.data ?? [];
+
+  async function descargarArchivo(a: ExpedienteArchivo) {
+    try {
+      const url = await signedUrlExpediente(a.storage_path);
+      window.open(url, '_blank', 'noopener');
+    } catch {
+      toast.error('No se pudo generar el enlace de descarga.');
+    }
+  }
 
   const documentos = documentosQuery.data ?? [];
   const filtered = documentos.filter((d) => {
@@ -163,6 +196,68 @@ export function DocumentosPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Archivos del expediente (contratos archivados, etc.) */}
+      <div>
+        <h2 className="font-heading mb-2 text-sm font-semibold">Archivos del expediente</h2>
+        <Card>
+          <CardContent className="p-0">
+            {archivosQuery.isLoading ? (
+              <div className="space-y-2 p-4">
+                {[0, 1].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-muted-foreground border-b text-left">
+                    <th className="px-4 py-3 font-medium">Colaborador</th>
+                    <th className="px-4 py-3 font-medium">Archivo</th>
+                    <th className="px-4 py-3 font-medium">Tipo</th>
+                    <th className="px-4 py-3 font-medium">Fecha</th>
+                    <th className="px-4 py-3 font-medium"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {archivos.map((a) => (
+                    <tr key={a.id} className="border-b last:border-0">
+                      <td className="px-4 py-3 font-medium">
+                        {a.colaborador_id
+                          ? (colaboradorNombre.get(a.colaborador_id) ?? '—')
+                          : '—'}
+                      </td>
+                      <td className="text-muted-foreground px-4 py-3">{a.nombre}</td>
+                      <td className="px-4 py-3">
+                        <Badge variant="secondary">{a.tipo}</Badge>
+                      </td>
+                      <td className="text-muted-foreground px-4 py-3">{formatDate(a.created_at)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void descargarArchivo(a)}
+                        >
+                          <Download className="size-3.5" />
+                          Descargar
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {archivos.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="text-muted-foreground px-4 py-10 text-center">
+                        Aún no hay archivos en el expediente. Se agregan al archivar un contrato
+                        desde el colaborador.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <DocumentoDialog
         open={docDialogOpen}
