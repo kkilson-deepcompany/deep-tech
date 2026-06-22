@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, LockKeyhole } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import type { SectionDef } from '@/lib/sections';
+import type { SectionDef, SectionId } from '@/lib/sections';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -31,6 +31,36 @@ const ACCENT_RING: Record<string, string> = {
   emerald: 'ring-emerald-500 border-emerald-500',
 };
 
+// SHA-256 de los PINs por defecto (1111/2222/3333/4444).
+// Se usan como fallback si el RPC aún no está disponible en la BD.
+const DEFAULT_HASHES: Record<SectionId, string> = {
+  rrhh:          '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c',
+  operaciones:   'edee29f882543b956620b26d0ee0e7e950399b1c4222f5de05e06425b4c995e9',
+  administracion:'318aee3fed8c9d040d35a7fc1fa776fb31303833aa2de885354ddf3d44d8fb69',
+  finanzas:      '79f06f8fde333461739f220090a23cb2a79f6d714bee100d0e4b4af249294619',
+};
+
+async function sha256hex(text: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+async function checkPin(sectionId: SectionId, pin: string): Promise<boolean> {
+  // 1. Intentar RPC (fuente de verdad cuando la migración está aplicada)
+  const { data, error } = await supabase.rpc('check_section_pin', {
+    p_section: sectionId,
+    p_pin: pin,
+  });
+  if (!error) return data === true;
+
+  // 2. Fallback: comparar contra hash por defecto en el cliente
+  console.warn('[PinModal] RPC no disponible, usando hash local:', error.message);
+  const inputHash = await sha256hex(pin);
+  return inputHash === DEFAULT_HASHES[sectionId];
+}
+
 export function PinModal({ section, onSuccess, onClose }: PinModalProps) {
   const [digits, setDigits] = useState<string[]>(['', '', '', '']);
   const [error, setError] = useState(false);
@@ -38,7 +68,6 @@ export function PinModal({ section, onSuccess, onClose }: PinModalProps) {
   const [shake, setShake] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Reset al abrir una sección distinta
   useEffect(() => {
     if (section) {
       setDigits(['', '', '', '']);
@@ -52,12 +81,8 @@ export function PinModal({ section, onSuccess, onClose }: PinModalProps) {
     setLoading(true);
     setError(false);
     try {
-      const { data, error: rpcError } = await supabase.rpc('check_section_pin', {
-        p_section: section!.id,
-        p_pin: pin,
-      });
-      if (rpcError) throw rpcError;
-      if (data === true) {
+      const ok = await checkPin(section!.id, pin);
+      if (ok) {
         onSuccess(section!.id);
       } else {
         setError(true);
@@ -68,7 +93,8 @@ export function PinModal({ section, onSuccess, onClose }: PinModalProps) {
           inputRefs.current[0]?.focus();
         }, 500);
       }
-    } catch {
+    } catch (err) {
+      console.error('[PinModal] error inesperado:', err);
       setError(true);
     } finally {
       setLoading(false);
@@ -94,7 +120,6 @@ export function PinModal({ section, onSuccess, onClose }: PinModalProps) {
     if (index < 3) {
       inputRefs.current[index + 1]?.focus();
     } else {
-      // último dígito → verificar
       const pin = next.join('');
       if (pin.length === 4) void verify(pin);
     }
