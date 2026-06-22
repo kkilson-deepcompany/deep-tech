@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowRight, FileCheck, FileText, Plus, ShoppingCart, Truck } from 'lucide-react';
+import { FileCheck, FileText, Plus, ShoppingCart, Truck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatMoney } from '@/lib/domain';
 import { PageHeader } from '@/components/page-header';
@@ -16,9 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -147,16 +145,14 @@ function NuevoDocumentoDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Tipo</Label>
-              <Select value={form.tipo} onValueChange={(v) => setForm((f) => ({ ...f, tipo: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{tipos.map((t) => <SelectItem key={t} value={t}>{TIPO_LABEL[t]}</SelectItem>)}</SelectContent>
+              <Select value={form.tipo} onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value }))}>
+                {tipos.map((t) => <option key={t} value={t}>{TIPO_LABEL[t]}</option>)}
               </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Moneda</Label>
-              <Select value={form.moneda} onValueChange={(v) => setForm((f) => ({ ...f, moneda: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{['USD', 'VES', 'EUR'].map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+              <Select value={form.moneda} onChange={(e) => setForm((f) => ({ ...f, moneda: e.target.value }))}>
+                {['USD', 'VES', 'EUR'].map((m) => <option key={m} value={m}>{m}</option>)}
               </Select>
             </div>
           </div>
@@ -176,16 +172,16 @@ function NuevoDocumentoDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Centro de costo <span className="text-destructive">*</span></Label>
-              <Select value={form.centro_costo_id} onValueChange={(v) => setForm((f) => ({ ...f, centro_costo_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>{centros.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}</SelectContent>
+              <Select value={form.centro_costo_id} onChange={(e) => setForm((f) => ({ ...f, centro_costo_id: e.target.value }))}>
+                <option value="">Seleccionar</option>
+                {centros.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Proyecto</Label>
-              <Select value={form.proyecto_id} onValueChange={(v) => setForm((f) => ({ ...f, proyecto_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
-                <SelectContent>{proyectos.map((p) => <SelectItem key={p.id} value={p.id}>{p.nombre}</SelectItem>)}</SelectContent>
+              <Select value={form.proyecto_id} onChange={(e) => setForm((f) => ({ ...f, proyecto_id: e.target.value }))}>
+                <option value="">Opcional</option>
+                {proyectos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
               </Select>
             </div>
           </div>
@@ -265,7 +261,7 @@ function TablaDocumentos({ ciclo }: { ciclo: 'ar' | 'ap' }) {
                         <p className="font-medium">{doc.contraparte_nombre}</p>
                         {doc.descripcion && <p className="text-muted-foreground text-xs">{doc.descripcion}</p>}
                       </td>
-                      <td className="px-4 py-3 font-semibold">{formatMoney(doc.total, doc.moneda)}</td>
+                      <td className="px-4 py-3 font-semibold">{formatMoney(doc.total)}</td>
                       <td className={cn('px-4 py-3', vencido && 'text-red-500 font-medium')}>
                         {doc.fecha_vencimiento
                           ? format(new Date(doc.fecha_vencimiento), 'd MMM yyyy', { locale: es })
@@ -298,13 +294,7 @@ export function DocumentosFinancierosPage() {
       <PageHeader
         eyebrow="Finanzas"
         title="Documentos Financieros"
-        description={
-          <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            Proformas <ArrowRight className="size-3" /> OC Cliente <ArrowRight className="size-3" /> Factura Emitida
-            <span className="mx-2 text-border">|</span>
-            Requerimiento <ArrowRight className="size-3" /> OC Interna <ArrowRight className="size-3" /> Factura Proveedor
-          </span>
-        }
+        description="Ciclo AR: Proforma → OC Cliente → Factura Emitida | Ciclo AP: Requerimiento → OC Interna → Factura Proveedor"
       />
       <Tabs defaultValue="ar">
         <TabsList>

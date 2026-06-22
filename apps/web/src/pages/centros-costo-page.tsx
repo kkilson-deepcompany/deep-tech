@@ -12,9 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+import { Select } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 interface CentroCosto {
@@ -120,20 +118,17 @@ function ProyectoDialog({ open, onClose, centros }: { open: boolean; onClose: ()
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Centro de costo</Label>
-              <Select value={form.centro_costo_id} onValueChange={(v) => setForm((f) => ({ ...f, centro_costo_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>{centros.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}</SelectContent>
+              <Select value={form.centro_costo_id} onChange={(e) => setForm((f) => ({ ...f, centro_costo_id: e.target.value }))}>
+                <option value="">Seleccionar</option>
+                {centros.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Estado</Label>
-              <Select value={form.estado} onValueChange={(v) => setForm((f) => ({ ...f, estado: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="activo">Activo</SelectItem>
-                  <SelectItem value="pausado">Pausado</SelectItem>
-                  <SelectItem value="cerrado">Cerrado</SelectItem>
-                </SelectContent>
+              <Select value={form.estado} onChange={(e) => setForm((f) => ({ ...f, estado: e.target.value }))}>
+                <option value="activo">Activo</option>
+                <option value="pausado">Pausado</option>
+                <option value="cerrado">Cerrado</option>
               </Select>
             </div>
           </div>
@@ -222,7 +217,7 @@ export function CentrosCostoPage() {
                 <tbody>
                   {proyectos.map((p) => {
                     const centro = centros.find((c) => c.id === p.centro_costo_id);
-                    const estadoCfg = ESTADO_PROYECTO[p.estado] ?? ESTADO_PROYECTO['activo'];
+                    const estadoCfg = ESTADO_PROYECTO[p.estado] ?? ESTADO_PROYECTO['activo']!;
                     return (
                       <tr key={p.id} className="hover:bg-muted/30 border-b last:border-0">
                         <td className="px-4 py-3">

@@ -5,7 +5,6 @@ import { es } from 'date-fns/locale';
 import {
   ArrowDownCircle,
   ArrowUpCircle,
-  Banknote,
   Bitcoin,
   Building2,
   CheckCircle2,
@@ -29,13 +28,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -142,22 +135,16 @@ function NuevaCuentaDialog({ open, onClose }: { open: boolean; onClose: () => vo
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Tipo</Label>
-              <Select value={form.tipo} onValueChange={(v) => setForm((f) => ({ ...f, tipo: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(TIPO_CUENTA_LABEL).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
+              <Select value={form.tipo} onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value }))}>
+                {Object.entries(TIPO_CUENTA_LABEL).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
               </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Moneda</Label>
-              <Select value={form.moneda} onValueChange={(v) => setForm((f) => ({ ...f, moneda: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {['USD', 'VES', 'EUR', 'USDT'].map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                </SelectContent>
+              <Select value={form.moneda} onChange={(e) => setForm((f) => ({ ...f, moneda: e.target.value }))}>
+                {['USD', 'VES', 'EUR', 'USDT'].map((m) => <option key={m} value={m}>{m}</option>)}
               </Select>
             </div>
           </div>
@@ -232,31 +219,22 @@ function NuevoMovimientoDialog({ open, onClose, cuentas }: { open: boolean; onCl
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Tipo</Label>
-              <Select value={form.tipo} onValueChange={(v) => setForm((f) => ({ ...f, tipo: v as 'ingreso' | 'egreso' }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ingreso">Ingreso</SelectItem>
-                  <SelectItem value="egreso">Egreso</SelectItem>
-                </SelectContent>
+              <Select value={form.tipo} onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value as 'ingreso' | 'egreso' }))}>
+                <option value="ingreso">Ingreso</option>
+                <option value="egreso">Egreso</option>
               </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Categoría</Label>
-              <Select value={form.categoria} onValueChange={(v) => setForm((f) => ({ ...f, categoria: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CATEGORIAS.map((c) => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}
-                </SelectContent>
+              <Select value={form.categoria} onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}>
+                {CATEGORIAS.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
               </Select>
             </div>
           </div>
           <div className="space-y-1.5">
             <Label>Cuenta</Label>
-            <Select value={form.cuenta_id} onValueChange={(v) => setForm((f) => ({ ...f, cuenta_id: v }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {cuentas.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre} ({c.moneda})</SelectItem>)}
-              </SelectContent>
+            <Select value={form.cuenta_id} onChange={(e) => setForm((f) => ({ ...f, cuenta_id: e.target.value }))}>
+              {cuentas.map((c) => <option key={c.id} value={c.id}>{c.nombre} ({c.moneda})</option>)}
             </Select>
           </div>
           <div className="space-y-1.5">
@@ -350,7 +328,7 @@ export function TesoreriaPage() {
                   <p className="mt-3 truncate text-sm font-medium">{cuenta.nombre}</p>
                   {cuenta.banco && <p className="text-muted-foreground text-xs">{cuenta.banco}</p>}
                   <p className={cn('mt-1 text-xl font-bold', saldo < 0 ? 'text-red-500' : 'text-foreground')}>
-                    {formatMoney(saldo, cuenta.moneda)}
+                    {formatMoney(saldo)}
                   </p>
                 </button>
               );
@@ -360,7 +338,7 @@ export function TesoreriaPage() {
         {cuentas.length > 0 && (
           <div className="flex flex-col justify-center rounded-xl border border-dashed bg-muted/30 p-4">
             <p className="text-muted-foreground text-xs">Total disponible (USD)</p>
-            <p className="mt-1 text-2xl font-bold">{formatMoney(totalUSD, 'USD')}</p>
+            <p className="mt-1 text-2xl font-bold">{formatMoney(totalUSD)}</p>
             <p className="text-muted-foreground text-xs">{cuentas.filter(c => c.moneda === 'USD').length} cuentas en USD</p>
           </div>
         )}
@@ -407,7 +385,7 @@ export function TesoreriaPage() {
                     <td className="px-4 py-3 text-right font-semibold">
                       <span className={cn('flex items-center justify-end gap-1', mov.tipo === 'ingreso' ? 'text-emerald-600' : 'text-red-500')}>
                         {mov.tipo === 'ingreso' ? <ArrowUpCircle className="size-3.5" /> : <ArrowDownCircle className="size-3.5" />}
-                        {formatMoney(mov.monto, mov.moneda)}
+                        {formatMoney(mov.monto)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
