@@ -5,13 +5,17 @@ import {
   BellRing,
   Briefcase,
   CalendarClock,
+  CalendarDays,
   CalendarRange,
   Calculator,
   FileCog,
+  FileStack,
   FileText,
   FolderOpen,
   HeartPulse,
+  Landmark,
   LayoutGrid,
+  Layers,
   LifeBuoy,
   LogOut,
   Moon,
@@ -22,6 +26,7 @@ import {
   Settings,
   ShieldCheck,
   Sun,
+  Tag,
   TrendingUp,
   Users,
   UserSearch,
@@ -102,10 +107,24 @@ const SECTION_NAV: Record<string, NavGroup[]> = {
   ],
   finanzas: [
     {
-      section: 'Finanzas',
+      section: 'Visión',
       items: [
+        { to: '/finanzas-calendario', label: 'Calendario', icon: CalendarDays },
+      ],
+    },
+    {
+      section: 'Operaciones',
+      items: [
+        { to: '/tesoreria', label: 'Tesorería', icon: Landmark },
+        { to: '/documentos-financieros', label: 'Documentos AR/AP', icon: FileStack },
+        { to: '/centros-costo', label: 'Centros de Costo', icon: Tag },
         { to: '/gastos', label: 'Gastos', icon: Receipt },
         { to: '/recordatorios', label: 'Recordatorios', icon: BellRing },
+      ],
+    },
+    {
+      section: 'Planificación',
+      items: [
         { to: '/presupuestos', label: 'Presupuestos', icon: Wallet },
         { to: '/ingresos', label: 'Ingresos', icon: TrendingUp },
       ],

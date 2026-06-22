@@ -77,6 +77,10 @@ export const ROUTE_SECTION: Record<string, SectionId> = {
   '/recordatorios': 'finanzas',
   '/presupuestos': 'finanzas',
   '/ingresos': 'finanzas',
+  '/finanzas-calendario': 'finanzas',
+  '/tesoreria': 'finanzas',
+  '/documentos-financieros': 'finanzas',
+  '/centros-costo': 'finanzas',
 };
 
 /** Devuelve la sección a la que pertenece un pathname, o null si no aplica. */

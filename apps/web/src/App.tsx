@@ -35,6 +35,10 @@ import { SoportePage } from '@/pages/soporte-page';
 import { ProductosPage } from '@/pages/productos-page';
 import { UsuariosPage } from '@/pages/usuarios-page';
 import { ConfiguracionPage } from '@/pages/configuracion-page';
+import { FinanzasCalendarioPage } from '@/pages/finanzas-calendario-page';
+import { TesoreriaPage } from '@/pages/tesoreria-page';
+import { DocumentosFinancierosPage } from '@/pages/documentos-financieros-page';
+import { CentrosCostoPage } from '@/pages/centros-costo-page';
 
 export default function App() {
   return (
@@ -77,6 +81,10 @@ export default function App() {
         <Route path="/ordenes-servicio" element={<ServiceOrdersPage />} />
         <Route path="/soporte" element={<SoportePage />} />
         <Route path="/inventario" element={<ProductosPage />} />
+        <Route path="/finanzas-calendario" element={<FinanzasCalendarioPage />} />
+        <Route path="/tesoreria" element={<TesoreriaPage />} />
+        <Route path="/documentos-financieros" element={<DocumentosFinancierosPage />} />
+        <Route path="/centros-costo" element={<CentrosCostoPage />} />
         <Route
           path="/usuarios"
           element={
