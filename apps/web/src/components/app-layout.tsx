@@ -1,4 +1,5 @@
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Banknote,
   BellRing,
@@ -10,7 +11,7 @@ import {
   FileText,
   FolderOpen,
   HeartPulse,
-  LayoutDashboard,
+  LayoutGrid,
   LifeBuoy,
   LogOut,
   Moon,
@@ -31,6 +32,8 @@ import { useTheme } from 'next-themes';
 import { useAuth } from '@/lib/auth/auth-context';
 import { ROLE_LABELS } from '@/lib/auth/types';
 import type { UserRole } from '@/lib/auth/types';
+import { useSections } from '@/lib/section-context';
+import { sectionForPath, SECTIONS } from '@/lib/sections';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -46,76 +49,137 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const NAV_GROUPS: NavGroup[] = [
-  { items: [{ to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }] },
-  {
-    section: 'Reclutamiento',
-    items: [
-      { to: '/candidatos', label: 'Candidatos', icon: UserSearch },
-      { to: '/vacantes', label: 'Vacantes', icon: Briefcase },
-    ],
-  },
-  {
-    section: 'Equipo',
-    items: [
-      { to: '/colaboradores', label: 'Colaboradores', icon: Users },
-      { to: '/organigrama', label: 'Organigrama', icon: Network },
-      { to: '/contratos', label: 'Contratos', icon: FileText },
-      { to: '/plantillas', label: 'Plantillas', icon: FileCog },
-      { to: '/documentos', label: 'Documentos', icon: FolderOpen },
-      { to: '/nominas', label: 'Nómina', icon: Banknote },
-      { to: '/pago-semanal', label: 'Pago Semanal', icon: CalendarRange },
-      { to: '/beneficios', label: 'Beneficios', icon: HeartPulse },
-    ],
-  },
-  {
-    section: 'Finanzas',
-    items: [
-      { to: '/gastos', label: 'Gastos', icon: Receipt },
-      { to: '/recordatorios', label: 'Recordatorios', icon: BellRing },
-      { to: '/presupuestos', label: 'Presupuestos', icon: Wallet },
-      { to: '/ingresos', label: 'Ingresos', icon: TrendingUp },
-      { to: '/costo-nomina', label: 'Costo Nómina', icon: Banknote },
-      { to: '/liquidaciones', label: 'Liquidaciones', icon: Calculator },
-    ],
-  },
-  {
-    section: 'Operaciones',
-    items: [
-      { to: '/guardias', label: 'Guardias', icon: CalendarClock },
-      { to: '/ordenes-servicio', label: 'Órdenes de Servicio', icon: ClipboardList },
-      { to: '/soporte', label: 'Soporte', icon: LifeBuoy },
-      { to: '/inventario', label: 'Inventario', icon: Package },
-    ],
-  },
-  {
-    section: 'Administración',
-    items: [
-      { to: '/usuarios', label: 'Usuarios', icon: ShieldCheck, roles: ['admin_rrhh'] },
-      { to: '/configuracion', label: 'Configuración', icon: Settings, roles: ['admin_rrhh'] },
-    ],
-  },
-];
+const SECTION_NAV: Record<string, NavGroup[]> = {
+  rrhh: [
+    {
+      section: 'Reclutamiento',
+      items: [
+        { to: '/candidatos', label: 'Candidatos', icon: UserSearch },
+        { to: '/vacantes', label: 'Vacantes', icon: Briefcase },
+      ],
+    },
+    {
+      section: 'Equipo',
+      items: [
+        { to: '/colaboradores', label: 'Colaboradores', icon: Users },
+        { to: '/organigrama', label: 'Organigrama', icon: Network },
+        { to: '/contratos', label: 'Contratos', icon: FileText },
+        { to: '/plantillas', label: 'Plantillas', icon: FileCog },
+        { to: '/documentos', label: 'Documentos', icon: FolderOpen },
+      ],
+    },
+    {
+      section: 'Pagos',
+      items: [
+        { to: '/nominas', label: 'Nómina', icon: Banknote },
+        { to: '/pago-semanal', label: 'Pago Semanal', icon: CalendarRange },
+        { to: '/costo-nomina', label: 'Costo Nómina', icon: Banknote },
+        { to: '/liquidaciones', label: 'Liquidaciones', icon: Calculator },
+        { to: '/beneficios', label: 'Beneficios', icon: HeartPulse },
+      ],
+    },
+  ],
+  operaciones: [
+    {
+      section: 'Operaciones',
+      items: [
+        { to: '/ordenes-servicio', label: 'Órdenes de Servicio', icon: ClipboardList },
+        { to: '/guardias', label: 'Guardias', icon: CalendarClock },
+        { to: '/soporte', label: 'Soporte', icon: LifeBuoy },
+        { to: '/inventario', label: 'Inventario', icon: Package },
+      ],
+    },
+  ],
+  administracion: [
+    {
+      section: 'Administración',
+      items: [
+        { to: '/inventario', label: 'Inventario', icon: Package },
+        { to: '/usuarios', label: 'Usuarios', icon: ShieldCheck, roles: ['admin_rrhh'] },
+        { to: '/configuracion', label: 'Configuración', icon: Settings, roles: ['admin_rrhh'] },
+      ],
+    },
+  ],
+  finanzas: [
+    {
+      section: 'Finanzas',
+      items: [
+        { to: '/gastos', label: 'Gastos', icon: Receipt },
+        { to: '/recordatorios', label: 'Recordatorios', icon: BellRing },
+        { to: '/presupuestos', label: 'Presupuestos', icon: Wallet },
+        { to: '/ingresos', label: 'Ingresos', icon: TrendingUp },
+      ],
+    },
+  ],
+};
 
-/** Shell autenticado: barra lateral de navegación + área de contenido. */
+const ACCENT_LABEL: Record<string, string> = {
+  blue:    'text-blue-500',
+  orange:  'text-orange-500',
+  violet:  'text-violet-500',
+  emerald: 'text-emerald-500',
+};
+
+/** Shell autenticado: nav lateral consciente de la sección activa. */
 export function AppLayout() {
   const { profile, user, signOut } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
+  const { activeSection, setActiveSection, isUnlocked } = useSections();
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const displayName = profile?.name ?? user?.email ?? 'Usuario';
   const role = profile?.role;
+
+  // Sincroniza activeSection con la ruta al recargar la página
+  useEffect(() => {
+    const sectionId = sectionForPath(location.pathname);
+    if (sectionId && sectionId !== activeSection) {
+      if (isUnlocked(sectionId)) {
+        setActiveSection(sectionId);
+      } else {
+        navigate('/', { replace: true });
+      }
+    }
+  }, [location.pathname, activeSection, isUnlocked, setActiveSection, navigate]);
+
+  const currentSectionId = activeSection ?? sectionForPath(location.pathname);
+  const sectionDef = SECTIONS.find((s) => s.id === currentSectionId);
+  const navGroups = currentSectionId ? (SECTION_NAV[currentSectionId] ?? []) : [];
 
   return (
     <div className="flex h-full">
       <aside className="bg-card flex w-60 shrink-0 flex-col border-r">
-        <Link to="/dashboard" className="flex h-16 items-center gap-2 border-b px-6">
-          <div className="bg-primary font-heading text-primary-foreground flex size-8 items-center justify-center rounded-lg text-sm font-bold">
-            d.
-          </div>
-          <span className="font-heading text-primary text-lg font-semibold">deep.tech</span>
-        </Link>
+        {/* Logo + etiqueta de sección */}
+        <div className="flex h-16 items-center border-b px-4">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="bg-primary font-heading text-primary-foreground flex size-8 items-center justify-center rounded-lg text-sm font-bold">
+              d.
+            </div>
+            <div className="min-w-0">
+              <span className="font-heading text-primary block text-sm font-semibold leading-none">
+                deep.tech
+              </span>
+              {sectionDef && (
+                <span className={cn('block truncate text-[10px] font-medium', ACCENT_LABEL[sectionDef.accent])}>
+                  {sectionDef.label}
+                </span>
+              )}
+            </div>
+          </Link>
+        </div>
 
         <nav className="flex-1 space-y-4 overflow-y-auto p-3">
-          {NAV_GROUPS.map((group) => {
+          {/* Volver al selector de secciones */}
+          <button
+            onClick={() => { setActiveSection(null); navigate('/'); }}
+            className="text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-colors"
+          >
+            <LayoutGrid className="size-3.5" />
+            Todas las secciones
+          </button>
+
+          {navGroups.map((group) => {
             const visible = group.items.filter(
               (item) => !item.roles || (role && item.roles.includes(role)),
             );

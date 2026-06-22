@@ -3,6 +3,7 @@ import { RequireAuth } from '@/components/require-auth';
 import { RequireRole } from '@/components/require-role';
 import { AppLayout } from '@/components/app-layout';
 import { LoginPage } from '@/pages/login-page';
+import { HomePage } from '@/pages/home-page';
 import { MfaSetupPage } from '@/pages/mfa-setup-page';
 import { WelcomePage } from '@/pages/welcome-page';
 import { FormularioPage } from '@/pages/formulario-page';
@@ -51,8 +52,8 @@ export default function App() {
           </RequireAuth>
         }
       >
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/dashboard" element={<Navigate to="/" replace />} />
         <Route path="/candidatos" element={<CandidatosPage />} />
         <Route path="/vacantes" element={<VacantesPage />} />
         <Route path="/colaboradores" element={<ColaboradoresPage />} />
@@ -93,7 +94,7 @@ export default function App() {
           }
         />
       </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

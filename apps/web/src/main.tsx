@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/lib/auth/auth-context';
+import { SectionProvider } from '@/lib/section-context';
 import { DialogProvider, installNativeDialogShim } from '@/lib/dialog-service';
 import App from './App';
 import './index.css';
@@ -21,10 +22,12 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AuthProvider>
-            <DialogProvider>
-              <App />
-              <Toaster richColors position="top-right" />
-            </DialogProvider>
+            <SectionProvider>
+              <DialogProvider>
+                <App />
+                <Toaster richColors position="top-right" />
+              </DialogProvider>
+            </SectionProvider>
           </AuthProvider>
         </BrowserRouter>
       </QueryClientProvider>
