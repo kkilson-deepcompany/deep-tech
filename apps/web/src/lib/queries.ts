@@ -302,6 +302,38 @@ export async function signedUrlExpediente(storagePath: string): Promise<string> 
   return data.signedUrl;
 }
 
+export async function fetchExpedienteArchivosByColaborador(
+  colaboradorId: string,
+): Promise<ExpedienteArchivo[]> {
+  const { data, error } = await supabase
+    .from('expediente_archivos')
+    .select('*')
+    .eq('colaborador_id', colaboradorId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as ExpedienteArchivo[];
+}
+
+export async function uploadExpedienteFile(params: {
+  colaboradorId: string;
+  tipo: string;
+  file: File;
+}): Promise<string> {
+  const safe = params.file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `expedientes/${params.colaboradorId}/${params.tipo}/${Date.now()}_${safe}`;
+  const { error } = await supabase.storage
+    .from('contratos')
+    .upload(path, params.file, { contentType: params.file.type, upsert: false });
+  if (error) throw new Error(error.message);
+  return path;
+}
+
+export async function deleteExpedienteArchivo(id: string, storagePath: string): Promise<void> {
+  await supabase.storage.from('contratos').remove([storagePath]);
+  const { error } = await supabase.from('expediente_archivos').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
 export async function fetchCarpetas(): Promise<Carpeta[]> {
   const { data, error } = await supabase
     .from('carpetas')
@@ -623,6 +655,18 @@ export async function registrarBeneficioComoGasto(args: {
 }
 
 // ── Nómina semanal (plan de pago) ────────────────────────────────────────────
+
+export async function fetchNominaSemanalByColaborador(
+  colaboradorId: string,
+): Promise<NominaSemanalRow | null> {
+  const { data, error } = await supabase
+    .from('nomina_semanal')
+    .select('*')
+    .eq('colaborador_id', colaboradorId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data ?? null) as NominaSemanalRow | null;
+}
 
 export async function fetchNominaSemanal(): Promise<NominaSemanalRow[]> {
   const { data, error } = await supabase

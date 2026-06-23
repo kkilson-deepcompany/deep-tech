@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
+  Activity,
+  AreaChart,
   Banknote,
   BellRing,
   Briefcase,
@@ -27,10 +29,10 @@ import {
   ShieldCheck,
   Sun,
   Tag,
+  TrendingDown,
   TrendingUp,
   Users,
   UserSearch,
-  Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useTheme } from 'next-themes';
@@ -76,7 +78,6 @@ const SECTION_NAV: Record<string, NavGroup[]> = {
     {
       section: 'Pagos',
       items: [
-        { to: '/nominas', label: 'Nómina', icon: Banknote },
         { to: '/pago-semanal', label: 'Pago Semanal', icon: CalendarRange },
         { to: '/costo-nomina', label: 'Costo Nómina', icon: Banknote },
         { to: '/liquidaciones', label: 'Liquidaciones', icon: Calculator },
@@ -109,24 +110,40 @@ const SECTION_NAV: Record<string, NavGroup[]> = {
     {
       section: 'Visión',
       items: [
-        { to: '/finanzas-calendario', label: 'Calendario', icon: CalendarDays },
+        { to: '/finanzas', label: 'Dashboard', icon: CalendarDays },
       ],
     },
     {
-      section: 'Operaciones',
+      section: 'Ciclo Operativo',
       items: [
-        { to: '/tesoreria', label: 'Tesorería', icon: Landmark },
-        { to: '/documentos-financieros', label: 'Documentos AR/AP', icon: FileStack },
-        { to: '/centros-costo', label: 'Centros de Costo', icon: Tag },
-        { to: '/gastos', label: 'Gastos', icon: Receipt },
-        { to: '/recordatorios', label: 'Recordatorios', icon: BellRing },
+        { to: '/finanzas/ingresos',  label: 'Ingresos',        icon: TrendingUp },
+        { to: '/finanzas/gastos',    label: 'Gastos',           icon: Receipt },
+        { to: '/finanzas/cxc',       label: 'Por Cobrar (CxC)', icon: TrendingDown },
+        { to: '/finanzas/cxp',       label: 'Por Pagar (CxP)',  icon: BellRing },
+        { to: '/finanzas/bancos',    label: 'Bancos',           icon: Landmark },
       ],
     },
     {
-      section: 'Planificación',
+      section: 'Análisis',
       items: [
-        { to: '/presupuestos', label: 'Presupuestos', icon: Wallet },
-        { to: '/ingresos', label: 'Ingresos', icon: TrendingUp },
+        { to: '/finanzas/flujo-caja',       label: 'Flujo de Caja',      icon: Activity },
+        { to: '/finanzas/capital-trabajo',  label: 'Capital de Trabajo',  icon: AreaChart },
+        { to: '/finanzas/estados',          label: 'Estados Financieros', icon: FileStack },
+        { to: '/finanzas/viabilidad',       label: 'Viabilidad',          icon: Calculator },
+      ],
+    },
+    {
+      section: 'Personas',
+      items: [
+        { to: '/finanzas/nomina',      label: 'Nómina',     icon: Banknote },
+        { to: '/finanzas/beneficios',  label: 'Beneficios', icon: HeartPulse },
+      ],
+    },
+    {
+      section: 'Catálogos',
+      items: [
+        { to: '/finanzas/catalogo/centros-costo', label: 'Centros de Costo', icon: Tag },
+        { to: '/finanzas/catalogo/proyectos',     label: 'Proyectos',        icon: Layers },
       ],
     },
   ],

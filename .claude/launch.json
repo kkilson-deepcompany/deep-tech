@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "deep-tech-web",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "dev:frontend"],
+      "port": 5175
+    }
+  ]
+}

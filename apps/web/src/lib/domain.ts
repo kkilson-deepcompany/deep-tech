@@ -287,6 +287,8 @@ export interface Colaborador {
   bono_alimentacion: string;
   banco: string | null;
   cuenta_bancaria: string | null;
+  tipo_cuenta: string | null;
+  titular_cuenta: string | null;
   estado: ColaboradorEstado;
   notas: string | null;
   aplica_ivss: boolean;

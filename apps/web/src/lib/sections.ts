@@ -46,10 +46,10 @@ export const SECTIONS: SectionDef[] = [
   {
     id: 'finanzas',
     label: 'Finanzas',
-    description: 'Flujo de caja, P&L, OKRs y presupuestos',
+    description: 'SIGF — Flujo de caja, P&L, nómina y tesorería',
     icon: BarChart3,
     accent: 'emerald',
-    defaultRoute: '/gastos',
+    defaultRoute: '/finanzas',
   },
 ];
 
@@ -73,6 +73,8 @@ export const ROUTE_SECTION: Record<string, SectionId> = {
   '/inventario': 'administracion',
   '/usuarios': 'administracion',
   '/configuracion': 'administracion',
+  '/finanzas': 'finanzas',
+  // rutas legacy — redirigen a /finanzas/*
   '/gastos': 'finanzas',
   '/recordatorios': 'finanzas',
   '/presupuestos': 'finanzas',
