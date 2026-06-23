@@ -65,7 +65,7 @@ function toFormValues(c: Contrato | null, prefill?: Colaborador | null): Contrat
     salario: c?.salario ?? p?.salario ?? '',
     dia_pago: c?.dia_pago ?? p?.dia_pago ?? '30',
     estado: c?.estado ?? 'En Prueba',
-    plantilla_sel: c?.plantilla_id ? `custom:${c.plantilla_id}` : (c?.plantilla ?? 'Tiempo Determinado'),
+    plantilla_sel: c?.plantilla_id ? `custom:${c.plantilla_id}` : (c?.plantilla ?? 'Deepcompany LLC (US)'),
     duracion_meses: c?.duracion_meses != null ? String(c.duracion_meses) : '3',
     beneficios_exhibit_b: c?.beneficios_exhibit_b ?? '',
     exhibit_b_label: c?.exhibit_b_label ?? 'Additional benefits',
@@ -122,10 +122,12 @@ export function ContratoDialog({
       if (plantilla_sel.startsWith('custom:')) {
         payload.plantilla_id = plantilla_sel.slice('custom:'.length);
         // El enum sigue siendo NOT NULL; conservamos uno válido (no se usa al generar custom).
-        payload.plantilla = contrato?.plantilla ?? 'Tiempo Determinado';
+        payload.plantilla = contrato?.plantilla ?? 'Deepcompany LLC (US)';
       } else {
         payload.plantilla = plantilla_sel;
-        payload.plantilla_id = null;
+        // No incluir plantilla_id en el payload cuando es null para evitar
+        // que PostgREST falle si la columna aún no existe en el schema cache.
+        delete payload.plantilla_id;
       }
       const { error } =
         isEdit && contrato

@@ -144,9 +144,6 @@ export const CONTRATO_ESTADOS = [
 export type ContratoEstado = (typeof CONTRATO_ESTADOS)[number];
 
 export const CONTRATO_PLANTILLAS = [
-  'Tiempo Determinado',
-  'Por Proyecto',
-  'Prestacion Servicios',
   'Deepcompany LLC (US)',
   'Deepcompany CA (VE)',
 ] as const;
