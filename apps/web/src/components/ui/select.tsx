@@ -18,4 +18,38 @@ const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HT
 );
 Select.displayName = 'Select';
 
-export { Select };
+export interface OptionSelectOption {
+  value: string;
+  label: string;
+}
+
+interface OptionSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: OptionSelectOption[];
+  className?: string;
+  disabled?: boolean;
+  id?: string;
+}
+
+/** Variante de `Select` basada en un arreglo de `options` con `onChange` por valor. */
+function OptionSelect({ value, onChange, options, className, disabled, id }: OptionSelectProps) {
+  return (
+    <Select
+      id={id}
+      value={value}
+      disabled={disabled}
+      className={className}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </Select>
+  );
+}
+OptionSelect.displayName = 'OptionSelect';
+
+export { Select, OptionSelect };

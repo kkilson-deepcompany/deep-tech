@@ -32,7 +32,6 @@ import { UsuariosPage } from '@/pages/usuarios-page';
 import { ConfiguracionPage } from '@/pages/configuracion-page';
 import { FinanzasCalendarioPage } from '@/pages/finanzas-calendario-page';
 import { CentrosCostoPage } from '@/pages/centros-costo-page';
-import { SigfPlaceholderPage } from '@/pages/sigf-placeholder-page';
 import { SigfBancosPage } from '@/pages/sigf-bancos-page';
 import { SigfCxcPage } from '@/pages/sigf-cxc-page';
 import { SigfCxpPage } from '@/pages/sigf-cxp-page';

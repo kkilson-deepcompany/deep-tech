@@ -178,7 +178,10 @@ export function ContratoDialog({
         return generarPlantillaPdf({ ...params, plantilla });
       }
     }
-    switch (contrato.plantilla) {
+    // Cast a string: el tipo ContratoPlantilla se limitó a 2 valores (LLC/CA),
+    // pero contratos legacy en BD pueden traer plantillas antiguas que aún
+    // deben enrutar a su PDF especializado.
+    switch (contrato.plantilla as string) {
       case 'Deepcompany LLC (US)': {
         const { generarConsultingAgreementPdf } = await import('@/lib/consulting-agreement-pdf');
         return generarConsultingAgreementPdf({

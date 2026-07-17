@@ -5,10 +5,11 @@ interface PageHeaderProps {
   title: string;
   description?: string;
   action?: ReactNode;
+  children?: ReactNode;
 }
 
 /** Encabezado estándar de las páginas de módulo. */
-export function PageHeader({ eyebrow, title, description, action }: PageHeaderProps) {
+export function PageHeader({ eyebrow, title, description, action, children }: PageHeaderProps) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div>
@@ -20,7 +21,12 @@ export function PageHeader({ eyebrow, title, description, action }: PageHeaderPr
         <h1 className="font-heading text-primary mt-1 text-3xl font-bold">{title}</h1>
         {description && <p className="text-muted-foreground">{description}</p>}
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {(action || children) && (
+        <div className="flex shrink-0 items-center gap-2">
+          {action}
+          {children}
+        </div>
+      )}
     </div>
   );
 }

@@ -13,11 +13,11 @@ import { Landmark, TrendingUp, AlertTriangle, Receipt, CheckCircle2 } from 'luci
 
 function firstDayOfMonth(): string {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]!;
 }
 
 function today(): string {
-  return new Date().toISOString().split('T')[0];
+  return new Date().toISOString().split('T')[0]!;
 }
 
 function sumUSD(rows: { total?: number; amount?: number; moneda?: string; currency?: string }[]): number {
@@ -102,7 +102,7 @@ async function fetchCxpCounts() {
   if (error) throw error;
   const rows = data ?? [];
   const total = rows.length;
-  const proximos = rows.filter((r) => r.fecha_vencimiento && r.fecha_vencimiento <= cutoff.toISOString().split('T')[0]).length;
+  const proximos = rows.filter((r) => r.fecha_vencimiento && r.fecha_vencimiento <= cutoff.toISOString().split('T')[0]!).length;
   return { total, proximos };
 }
 

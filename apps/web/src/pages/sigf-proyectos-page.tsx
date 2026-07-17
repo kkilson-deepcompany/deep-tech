@@ -309,7 +309,7 @@ export function SigfProyectosPage() {
       <PageHeader
         title="Proyectos y Líneas de Negocio"
         description="Catálogo de proyectos vinculados a centros de costo — SIGF v1.0"
-        actions={
+        action={
           <Button onClick={() => setNewOpen(true)}>
             <Plus className="size-4 mr-2" />
             Nuevo proyecto

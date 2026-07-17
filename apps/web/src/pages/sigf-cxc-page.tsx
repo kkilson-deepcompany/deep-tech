@@ -111,7 +111,7 @@ function semaforoBadge(semaforo: DocAR['semaforo']) {
     cobrada: { label: 'Cobrada', cls: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
     sin_vencimiento: { label: 'Sin Venc.', cls: 'bg-muted text-muted-foreground' },
   };
-  const entry = map[semaforo] ?? map['sin_vencimiento'];
+  const entry = map[semaforo] ?? map['sin_vencimiento']!;
   return (
     <Badge variant="outline" className={cn('text-xs', entry.cls)}>
       {entry.label}

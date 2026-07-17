@@ -351,7 +351,7 @@ export function SigfNominaPage() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <PageHeader title="Nómina — Vista Financiera" subtitle="Costos salariales, aprobaciones e impacto presupuestario" />
+        <PageHeader title="Nómina — Vista Financiera" description="Costos salariales, aprobaciones e impacto presupuestario" />
         <Button variant="outline" onClick={() => navigate('/nominas')}>
           Gestionar nómina completa
         </Button>

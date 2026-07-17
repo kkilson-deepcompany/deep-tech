@@ -331,7 +331,7 @@ export function SigfBeneficiosPage() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <PageHeader title="Beneficios — Vista Financiera" subtitle="Costo total de beneficios, prestaciones y préstamos al personal" />
+        <PageHeader title="Beneficios — Vista Financiera" description="Costo total de beneficios, prestaciones y préstamos al personal" />
         <Button variant="outline" onClick={() => navigate('/beneficios')}>
           Administrar beneficios en RRHH
         </Button>

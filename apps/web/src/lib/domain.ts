@@ -915,11 +915,19 @@ export function formatDate(value: string | null | undefined): string {
 }
 
 /** Formatea un monto numérico (string desde PostgREST o number ya calculado). */
-export function formatMoney(value: string | number | null | undefined): string {
+export function formatMoney(
+  value: string | number | null | undefined,
+  moneda?: string,
+): string {
   if (value === null || value === undefined || value === '') return '—';
   const n = typeof value === 'number' ? value : Number(value);
   if (Number.isNaN(n)) return '—';
-  return n.toLocaleString('es-VE', { maximumFractionDigits: 2 });
+  const s = n.toLocaleString('es-VE', { maximumFractionDigits: 2 });
+  if (!moneda) return s;
+  const code = moneda.toUpperCase();
+  if (code === 'USD') return `$${s}`;
+  if (code === 'BS' || code === 'VES') return `Bs ${s}`;
+  return `${s} ${moneda}`;
 }
 
 /**
