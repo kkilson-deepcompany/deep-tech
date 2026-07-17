@@ -7,6 +7,7 @@ import { Toaster } from 'sonner';
 import { AuthProvider } from '@/lib/auth/auth-context';
 import { SectionProvider } from '@/lib/section-context';
 import { DialogProvider, installNativeDialogShim } from '@/lib/dialog-service';
+import { ErrorBoundary } from '@/components/error-boundary';
 import App from './App';
 import './index.css';
 
@@ -24,7 +25,9 @@ createRoot(document.getElementById('root')!).render(
           <AuthProvider>
             <SectionProvider>
               <DialogProvider>
-                <App />
+                <ErrorBoundary>
+                  <App />
+                </ErrorBoundary>
                 <Toaster richColors position="top-right" />
               </DialogProvider>
             </SectionProvider>
