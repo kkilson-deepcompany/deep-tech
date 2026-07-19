@@ -1,6 +1,14 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { RequireAuth } from '@/components/require-auth';
 import { RequireRole } from '@/components/require-role';
+import {
+  RECLUTAMIENTO_ROLES,
+  RRHH_ROLES,
+  RRHH_FINANZAS_ROLES,
+  FINANZAS_ROLES,
+  OPERACIONES_ROLES,
+  ADMIN_ROLES,
+} from '@/lib/auth/permissions';
 import { AppLayout } from '@/components/app-layout';
 import { LoginPage } from '@/pages/login-page';
 import { HomePage } from '@/pages/home-page';
@@ -62,47 +70,68 @@ export default function App() {
           </RequireAuth>
         }
       >
+        {/* Abiertas a cualquier autenticado */}
         <Route path="/" element={<HomePage />} />
         <Route path="/dashboard" element={<Navigate to="/" replace />} />
-        <Route path="/candidatos" element={<CandidatosPage />} />
-        <Route path="/vacantes" element={<VacantesPage />} />
-        <Route path="/colaboradores" element={<ColaboradoresPage />} />
-        <Route path="/organigrama" element={<OrganigramaPage />} />
-        <Route path="/contratos" element={<ContratosPage />} />
-        <Route path="/plantillas" element={<PlantillasPage />} />
-        <Route path="/plantillas/nueva" element={<PlantillaEditorPage />} />
-        <Route path="/plantillas/:id" element={<PlantillaEditorPage />} />
-        <Route path="/documentos" element={<DocumentosPage />} />
-        <Route path="/documentos/:id" element={<ExpedienteColaboradorPage />} />
-        <Route path="/nominas" element={<NominasPage />} />
-        <Route path="/nominas/:id" element={<NominaDetailPage />} />
-        <Route path="/pago-semanal" element={<PagoSemanalPage />} />
-        <Route path="/costo-nomina" element={<CostoNominaPage />} />
-        <Route path="/liquidaciones" element={<LiquidacionesPage />} />
-        <Route path="/beneficios" element={<BeneficiosPage />} />
-        <Route path="/guardias" element={<GuardiasPage />} />
-        <Route path="/ordenes-servicio" element={<ServiceOrdersPage />} />
         <Route path="/soporte" element={<SoportePage />} />
-        <Route path="/inventario" element={<ProductosPage />} />
-        {/* ── SIGF v1.0 ────────────────────────────────────── */}
-        <Route path="/finanzas" element={<SigfDashboardPage />} />
-        <Route path="/finanzas/dashboard" element={<SigfDashboardPage />} />
-        <Route path="/finanzas/calendario" element={<FinanzasCalendarioPage />} />
-        <Route path="/finanzas/ingresos" element={<SigfIngresosPage />} />
-        <Route path="/finanzas/gastos" element={<SigfGastosPage />} />
-        <Route path="/finanzas/cxc" element={<SigfCxcPage />} />
-        <Route path="/finanzas/cxp" element={<SigfCxpPage />} />
-        <Route path="/finanzas/bancos" element={<SigfBancosPage />} />
-        <Route path="/finanzas/flujo-caja" element={<SigfFlujoCajaPage />} />
-        <Route path="/finanzas/capital-trabajo" element={<SigfCapitalTrabajoPage />} />
-        <Route path="/finanzas/estados" element={<SigfEstadosPage />} />
-        <Route path="/finanzas/viabilidad" element={<SigfViabilidadPage />} />
-        <Route path="/finanzas/nomina" element={<SigfNominaPage />} />
-        <Route path="/finanzas/beneficios" element={<SigfBeneficiosPage />} />
-        <Route path="/finanzas/catalogo/centros-costo" element={<CentrosCostoPage />} />
-        <Route path="/finanzas/catalogo/proyectos" element={<SigfProyectosPage />} />
 
-        {/* ── Redirects legacy → SIGF ──────────────────────── */}
+        {/* Reclutamiento */}
+        <Route element={<RequireRole roles={RECLUTAMIENTO_ROLES}><Outlet /></RequireRole>}>
+          <Route path="/candidatos" element={<CandidatosPage />} />
+          <Route path="/vacantes" element={<VacantesPage />} />
+        </Route>
+
+        {/* RRHH + Finanzas (colaboradores, contratos, plantillas) */}
+        <Route element={<RequireRole roles={RRHH_FINANZAS_ROLES}><Outlet /></RequireRole>}>
+          <Route path="/colaboradores" element={<ColaboradoresPage />} />
+          <Route path="/contratos" element={<ContratosPage />} />
+          <Route path="/plantillas" element={<PlantillasPage />} />
+          <Route path="/plantillas/nueva" element={<PlantillaEditorPage />} />
+          <Route path="/plantillas/:id" element={<PlantillaEditorPage />} />
+        </Route>
+
+        {/* RRHH */}
+        <Route element={<RequireRole roles={RRHH_ROLES}><Outlet /></RequireRole>}>
+          <Route path="/organigrama" element={<OrganigramaPage />} />
+          <Route path="/documentos" element={<DocumentosPage />} />
+          <Route path="/documentos/:id" element={<ExpedienteColaboradorPage />} />
+          <Route path="/beneficios" element={<BeneficiosPage />} />
+        </Route>
+
+        {/* Finanzas (nómina, pagos y SIGF v1.0) */}
+        <Route element={<RequireRole roles={FINANZAS_ROLES}><Outlet /></RequireRole>}>
+          <Route path="/nominas" element={<NominasPage />} />
+          <Route path="/nominas/:id" element={<NominaDetailPage />} />
+          <Route path="/pago-semanal" element={<PagoSemanalPage />} />
+          <Route path="/costo-nomina" element={<CostoNominaPage />} />
+          <Route path="/liquidaciones" element={<LiquidacionesPage />} />
+          {/* ── SIGF v1.0 ────────────────────────────────────── */}
+          <Route path="/finanzas" element={<SigfDashboardPage />} />
+          <Route path="/finanzas/dashboard" element={<SigfDashboardPage />} />
+          <Route path="/finanzas/calendario" element={<FinanzasCalendarioPage />} />
+          <Route path="/finanzas/ingresos" element={<SigfIngresosPage />} />
+          <Route path="/finanzas/gastos" element={<SigfGastosPage />} />
+          <Route path="/finanzas/cxc" element={<SigfCxcPage />} />
+          <Route path="/finanzas/cxp" element={<SigfCxpPage />} />
+          <Route path="/finanzas/bancos" element={<SigfBancosPage />} />
+          <Route path="/finanzas/flujo-caja" element={<SigfFlujoCajaPage />} />
+          <Route path="/finanzas/capital-trabajo" element={<SigfCapitalTrabajoPage />} />
+          <Route path="/finanzas/estados" element={<SigfEstadosPage />} />
+          <Route path="/finanzas/viabilidad" element={<SigfViabilidadPage />} />
+          <Route path="/finanzas/nomina" element={<SigfNominaPage />} />
+          <Route path="/finanzas/beneficios" element={<SigfBeneficiosPage />} />
+          <Route path="/finanzas/catalogo/centros-costo" element={<CentrosCostoPage />} />
+          <Route path="/finanzas/catalogo/proyectos" element={<SigfProyectosPage />} />
+        </Route>
+
+        {/* Operaciones */}
+        <Route element={<RequireRole roles={OPERACIONES_ROLES}><Outlet /></RequireRole>}>
+          <Route path="/guardias" element={<GuardiasPage />} />
+          <Route path="/ordenes-servicio" element={<ServiceOrdersPage />} />
+          <Route path="/inventario" element={<ProductosPage />} />
+        </Route>
+
+        {/* ── Redirects legacy → SIGF (el destino ya está protegido) ── */}
         <Route path="/finanzas-calendario" element={<Navigate to="/finanzas/calendario" replace />} />
         <Route path="/tesoreria" element={<Navigate to="/finanzas/bancos" replace />} />
         <Route path="/documentos-financieros" element={<Navigate to="/finanzas/cxc" replace />} />
@@ -113,22 +142,12 @@ export default function App() {
         <Route path="/presupuestos/:id" element={<Navigate to="/finanzas/estados" replace />} />
         <Route path="/ingresos" element={<Navigate to="/finanzas/ingresos" replace />} />
         <Route path="/ingresos/:id" element={<Navigate to="/finanzas/ingresos" replace />} />
-        <Route
-          path="/usuarios"
-          element={
-            <RequireRole roles={['admin_rrhh']}>
-              <UsuariosPage />
-            </RequireRole>
-          }
-        />
-        <Route
-          path="/configuracion"
-          element={
-            <RequireRole roles={['admin_rrhh']}>
-              <ConfiguracionPage />
-            </RequireRole>
-          }
-        />
+
+        {/* Administración */}
+        <Route element={<RequireRole roles={ADMIN_ROLES}><Outlet /></RequireRole>}>
+          <Route path="/usuarios" element={<UsuariosPage />} />
+          <Route path="/configuracion" element={<ConfiguracionPage />} />
+        </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

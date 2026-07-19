@@ -5,8 +5,20 @@ import {
   Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import type { UserRole } from './auth/types';
+import {
+  RECLUTAMIENTO_ROLES,
+  RRHH_ROLES,
+  RRHH_FINANZAS_ROLES,
+  FINANZAS_ROLES,
+  OPERACIONES_ROLES,
+  ADMIN_ROLES,
+} from './auth/permissions';
 
 export type SectionId = 'rrhh' | 'operaciones' | 'administracion' | 'finanzas';
+
+/** Unión de grupos de roles, sin duplicados. */
+const union = (...groups: UserRole[][]): UserRole[] => [...new Set(groups.flat())];
 
 export interface SectionDef {
   id: SectionId;
@@ -16,6 +28,8 @@ export interface SectionDef {
   /** Color base para la card (clase de Tailwind sin prefijo) */
   accent: string;
   defaultRoute: string;
+  /** Roles que ven la sección (union de sus módulos). undefined = todos. */
+  roles?: UserRole[];
 }
 
 export const SECTIONS: SectionDef[] = [
@@ -26,6 +40,7 @@ export const SECTIONS: SectionDef[] = [
     icon: Users,
     accent: 'blue',
     defaultRoute: '/colaboradores',
+    roles: union(RECLUTAMIENTO_ROLES, RRHH_ROLES, RRHH_FINANZAS_ROLES, FINANZAS_ROLES),
   },
   {
     id: 'operaciones',
@@ -42,6 +57,7 @@ export const SECTIONS: SectionDef[] = [
     icon: Building2,
     accent: 'violet',
     defaultRoute: '/inventario',
+    roles: union(OPERACIONES_ROLES, ADMIN_ROLES),
   },
   {
     id: 'finanzas',
@@ -50,6 +66,7 @@ export const SECTIONS: SectionDef[] = [
     icon: BarChart3,
     accent: 'emerald',
     defaultRoute: '/finanzas',
+    roles: FINANZAS_ROLES,
   },
 ];
 

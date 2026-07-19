@@ -37,6 +37,8 @@ export function HomePage() {
   const [pendingSection, setPendingSection] = useState<SectionDef | null>(null);
 
   const displayName = profile?.name ?? user?.email ?? 'Usuario';
+  const role = profile?.role;
+  const visibleSections = SECTIONS.filter((s) => !s.roles || (role && s.roles.includes(role)));
 
   function handleSectionClick(section: SectionDef) {
     if (isUnlocked(section.id)) {
@@ -84,7 +86,7 @@ export function HomePage() {
         </div>
 
         <div className="grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2">
-          {SECTIONS.map((section) => {
+          {visibleSections.map((section) => {
             const unlocked = isUnlocked(section.id);
             const Icon = section.icon;
             return (
