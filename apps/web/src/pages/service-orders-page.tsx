@@ -85,7 +85,9 @@ function buildWhatsAppLink(order: ServiceOrder): string | null {
   const lines = [
     `Hola ${cliente || ''}, le compartimos la Orden de Servicio ${order.order_number ?? ''}`.trim() + '.',
     fecha ? `Servicio del ${fecha}.` : '',
-    order.pdf_url ? `PDF: ${order.pdf_url}` : '',
+    // El PDF contiene PII y su bucket es privado (0036): se envía por correo,
+    // no por un enlace público en WhatsApp.
+    order.pdf_url ? 'Le enviaremos el PDF firmado por correo.' : '',
     '',
     'Cualquier consulta, estamos a la orden.',
     'Parkeate · By Deepcompany',
@@ -209,10 +211,11 @@ export function ServiceOrdersPage() {
             .from('service-orders')
             .upload(path, blob, { contentType: 'application/pdf' });
           if (!up.error) {
-            const { data: u } = supabase.storage.from('service-orders').getPublicUrl(path);
+            // El bucket `service-orders` es privado (migración 0036): guardamos
+            // el path y el PDF se abre bajo demanda con una signed URL.
             await supabase
               .from('service_orders')
-              .update({ pdf_url: `${u.publicUrl}?v=${Date.now()}` })
+              .update({ pdf_url: path })
               .eq('id', saved.id);
           }
         } catch (e) {
@@ -818,16 +821,24 @@ function CompletadasTable({
                           <Wallet className="size-4" />
                         </button>
                       )}
-                      {o.pdf_url && (
-                        <a
-                          href={o.pdf_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="PDF guardado"
+                      {o.pdf_url && o.order_number && (
+                        <button
+                          type="button"
+                          title="Ver PDF guardado"
+                          onClick={async () => {
+                            const { data, error } = await supabase.storage
+                              .from('service-orders')
+                              .createSignedUrl(`${o.order_number}.pdf`, 3600);
+                            if (error || !data?.signedUrl) {
+                              toast.error('No se pudo abrir el PDF guardado.');
+                              return;
+                            }
+                            window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+                          }}
                           className="text-muted-foreground hover:text-foreground p-1"
                         >
                           <FileText className="size-4" />
-                        </a>
+                        </button>
                       )}
                       <button
                         type="button"
