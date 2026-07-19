@@ -115,14 +115,24 @@ async function fetchGastosProgramados() {
   return (data ?? []).length;
 }
 
-async function fetchMovimientosRecientes() {
+interface MovimientoReciente {
+  id: string;
+  fecha: string | null;
+  tipo: string | null;
+  categoria: string | null;
+  monto: number | string | null;
+  conciliado: boolean | null;
+  cuentas_financieras: { nombre: string | null } | null;
+}
+
+async function fetchMovimientosRecientes(): Promise<MovimientoReciente[]> {
   const { data, error } = await supabase
     .from('movimientos_tesoreria')
     .select('*, cuentas_financieras(nombre)')
     .order('created_at', { ascending: false })
     .limit(10);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as unknown as MovimientoReciente[];
 }
 
 async function fetchCxcVencidasCount() {
@@ -337,7 +347,7 @@ export function SigfDashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {movimientos.data.map((m: any) => (
+                    {movimientos.data.map((m) => (
                       <tr key={m.id} className="border-b last:border-0 hover:bg-muted/20">
                         <td className="px-4 py-2 text-muted-foreground">
                           {m.fecha ? new Date(m.fecha).toLocaleDateString('es-VE') : '—'}
