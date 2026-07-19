@@ -1,36 +1,22 @@
 import { useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Activity,
-  AreaChart,
-  Banknote,
-  BellRing,
   Briefcase,
   CalendarClock,
-  CalendarDays,
-  CalendarRange,
-  Calculator,
+  ClipboardList,
   FileCog,
-  FileStack,
   FileText,
   FolderOpen,
   HeartPulse,
-  Landmark,
   LayoutGrid,
-  Layers,
   LifeBuoy,
   LogOut,
   Moon,
   Network,
   Package,
-  ClipboardList,
-  Receipt,
   Settings,
   ShieldCheck,
   Sun,
-  Tag,
-  TrendingDown,
-  TrendingUp,
   Users,
   UserSearch,
 } from 'lucide-react';
@@ -45,7 +31,6 @@ import {
   RECLUTAMIENTO_ROLES,
   RRHH_ROLES,
   RRHH_FINANZAS_ROLES,
-  FINANZAS_ROLES,
   OPERACIONES_ROLES,
   ADMIN_ROLES,
 } from '@/lib/auth/permissions';
@@ -81,14 +66,6 @@ const SECTION_NAV: Record<string, NavGroup[]> = {
         { to: '/contratos', label: 'Contratos', icon: FileText, roles: RRHH_FINANZAS_ROLES },
         { to: '/plantillas', label: 'Plantillas', icon: FileCog, roles: RRHH_FINANZAS_ROLES },
         { to: '/documentos', label: 'Documentos', icon: FolderOpen, roles: RRHH_ROLES },
-      ],
-    },
-    {
-      section: 'Pagos',
-      items: [
-        { to: '/pago-semanal', label: 'Pago Semanal', icon: CalendarRange, roles: FINANZAS_ROLES },
-        { to: '/costo-nomina', label: 'Costo Nómina', icon: Banknote, roles: FINANZAS_ROLES },
-        { to: '/liquidaciones', label: 'Liquidaciones', icon: Calculator, roles: FINANZAS_ROLES },
         { to: '/beneficios', label: 'Beneficios', icon: HeartPulse, roles: RRHH_ROLES },
       ],
     },
@@ -103,55 +80,11 @@ const SECTION_NAV: Record<string, NavGroup[]> = {
         { to: '/inventario', label: 'Inventario', icon: Package, roles: OPERACIONES_ROLES },
       ],
     },
-  ],
-  administracion: [
     {
       section: 'Administración',
       items: [
-        { to: '/inventario', label: 'Inventario', icon: Package, roles: OPERACIONES_ROLES },
         { to: '/usuarios', label: 'Usuarios', icon: ShieldCheck, roles: ADMIN_ROLES },
         { to: '/configuracion', label: 'Configuración', icon: Settings, roles: ADMIN_ROLES },
-      ],
-    },
-  ],
-  finanzas: [
-    {
-      section: 'Visión',
-      items: [
-        { to: '/finanzas', label: 'Dashboard', icon: CalendarDays, roles: FINANZAS_ROLES },
-      ],
-    },
-    {
-      section: 'Ciclo Operativo',
-      items: [
-        { to: '/finanzas/ingresos',  label: 'Ingresos',        icon: TrendingUp, roles: FINANZAS_ROLES },
-        { to: '/finanzas/gastos',    label: 'Gastos',           icon: Receipt, roles: FINANZAS_ROLES },
-        { to: '/finanzas/cxc',       label: 'Por Cobrar (CxC)', icon: TrendingDown, roles: FINANZAS_ROLES },
-        { to: '/finanzas/cxp',       label: 'Por Pagar (CxP)',  icon: BellRing, roles: FINANZAS_ROLES },
-        { to: '/finanzas/bancos',    label: 'Bancos',           icon: Landmark, roles: FINANZAS_ROLES },
-      ],
-    },
-    {
-      section: 'Análisis',
-      items: [
-        { to: '/finanzas/flujo-caja',       label: 'Flujo de Caja',      icon: Activity, roles: FINANZAS_ROLES },
-        { to: '/finanzas/capital-trabajo',  label: 'Capital de Trabajo',  icon: AreaChart, roles: FINANZAS_ROLES },
-        { to: '/finanzas/estados',          label: 'Estados Financieros', icon: FileStack, roles: FINANZAS_ROLES },
-        { to: '/finanzas/viabilidad',       label: 'Viabilidad',          icon: Calculator, roles: FINANZAS_ROLES },
-      ],
-    },
-    {
-      section: 'Personas',
-      items: [
-        { to: '/finanzas/nomina',      label: 'Nómina',     icon: Banknote, roles: FINANZAS_ROLES },
-        { to: '/finanzas/beneficios',  label: 'Beneficios', icon: HeartPulse, roles: FINANZAS_ROLES },
-      ],
-    },
-    {
-      section: 'Catálogos',
-      items: [
-        { to: '/finanzas/catalogo/centros-costo', label: 'Centros de Costo', icon: Tag, roles: FINANZAS_ROLES },
-        { to: '/finanzas/catalogo/proyectos',     label: 'Proyectos',        icon: Layers, roles: FINANZAS_ROLES },
       ],
     },
   ],

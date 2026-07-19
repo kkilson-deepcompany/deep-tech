@@ -1,21 +1,9 @@
-import {
-  BarChart3,
-  Building2,
-  ClipboardList,
-  Users,
-} from 'lucide-react';
+import { ClipboardList, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { UserRole } from './auth/types';
-import {
-  RECLUTAMIENTO_ROLES,
-  RRHH_ROLES,
-  RRHH_FINANZAS_ROLES,
-  FINANZAS_ROLES,
-  OPERACIONES_ROLES,
-  ADMIN_ROLES,
-} from './auth/permissions';
+import { RECLUTAMIENTO_ROLES, RRHH_ROLES, RRHH_FINANZAS_ROLES } from './auth/permissions';
 
-export type SectionId = 'rrhh' | 'operaciones' | 'administracion' | 'finanzas';
+export type SectionId = 'rrhh' | 'operaciones';
 
 /** Unión de grupos de roles, sin duplicados. */
 const union = (...groups: UserRole[][]): UserRole[] => [...new Set(groups.flat())];
@@ -36,37 +24,20 @@ export const SECTIONS: SectionDef[] = [
   {
     id: 'rrhh',
     label: 'Recursos Humanos',
-    description: 'Equipo, nómina, contratos y reclutamiento',
+    description: 'Equipo, contratos, reclutamiento y beneficios',
     icon: Users,
     accent: 'blue',
     defaultRoute: '/colaboradores',
-    roles: union(RECLUTAMIENTO_ROLES, RRHH_ROLES, RRHH_FINANZAS_ROLES, FINANZAS_ROLES),
+    roles: union(RECLUTAMIENTO_ROLES, RRHH_ROLES, RRHH_FINANZAS_ROLES),
   },
   {
     id: 'operaciones',
     label: 'Operaciones',
-    description: 'Órdenes de servicio, guardias y soporte técnico',
+    description: 'Órdenes de servicio, guardias, soporte, inventario y administración',
     icon: ClipboardList,
     accent: 'orange',
     defaultRoute: '/ordenes-servicio',
-  },
-  {
-    id: 'administracion',
-    label: 'Administración',
-    description: 'Compras, ventas, inventario y control',
-    icon: Building2,
-    accent: 'violet',
-    defaultRoute: '/inventario',
-    roles: union(OPERACIONES_ROLES, ADMIN_ROLES),
-  },
-  {
-    id: 'finanzas',
-    label: 'Finanzas',
-    description: 'SIGF — Flujo de caja, P&L, nómina y tesorería',
-    icon: BarChart3,
-    accent: 'emerald',
-    defaultRoute: '/finanzas',
-    roles: FINANZAS_ROLES,
+    // Sin roles: Soporte es accesible para cualquier autenticado.
   },
 ];
 
@@ -79,34 +50,20 @@ export const ROUTE_SECTION: Record<string, SectionId> = {
   '/contratos': 'rrhh',
   '/plantillas': 'rrhh',
   '/documentos': 'rrhh',
-  '/nominas': 'rrhh',
-  '/pago-semanal': 'rrhh',
-  '/costo-nomina': 'rrhh',
-  '/liquidaciones': 'rrhh',
   '/beneficios': 'rrhh',
   '/ordenes-servicio': 'operaciones',
   '/guardias': 'operaciones',
   '/soporte': 'operaciones',
-  '/inventario': 'administracion',
-  '/usuarios': 'administracion',
-  '/configuracion': 'administracion',
-  '/finanzas': 'finanzas',
-  // rutas legacy — redirigen a /finanzas/*
-  '/gastos': 'finanzas',
-  '/recordatorios': 'finanzas',
-  '/presupuestos': 'finanzas',
-  '/ingresos': 'finanzas',
-  '/finanzas-calendario': 'finanzas',
-  '/tesoreria': 'finanzas',
-  '/documentos-financieros': 'finanzas',
-  '/centros-costo': 'finanzas',
+  '/inventario': 'operaciones',
+  '/usuarios': 'operaciones',
+  '/configuracion': 'operaciones',
 };
 
 /** Devuelve la sección a la que pertenece un pathname, o null si no aplica. */
 export function sectionForPath(pathname: string): SectionId | null {
   // Coincidencia exacta primero
   if (pathname in ROUTE_SECTION) return ROUTE_SECTION[pathname] ?? null;
-  // Prefijo para rutas con parámetros (ej. /nominas/abc)
+  // Prefijo para rutas con parámetros (ej. /documentos/abc)
   const base = '/' + pathname.split('/')[1];
   return ROUTE_SECTION[base] ?? null;
 }

@@ -17,11 +17,8 @@ export const RECLUTAMIENTO_ROLES: UserRole[] = [...DIRECCION, 'reclutador', 'aud
 /** RRHH: organigrama, documentos, beneficios (Kover). */
 export const RRHH_ROLES: UserRole[] = [...DIRECCION, 'auditor'];
 
-/** RRHH + finanzas: colaboradores, contratos y plantillas (finanzas los lee para nómina). */
+/** RRHH + finanzas: colaboradores, contratos y plantillas (el CFO los lee). */
 export const RRHH_FINANZAS_ROLES: UserRole[] = [...DIRECCION, 'cfo', 'auditor'];
-
-/** Finanzas: nómina, pagos, SIGF (ingresos, gastos, CxC/CxP, bancos, análisis). */
-export const FINANZAS_ROLES: UserRole[] = [...DIRECCION, 'cfo', 'auditor'];
 
 /** Operaciones: guardias, órdenes de servicio, inventario. */
 export const OPERACIONES_ROLES: UserRole[] = [...DIRECCION, 'coordinador_ops', 'auditor'];
