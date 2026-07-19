@@ -2,28 +2,19 @@ import { supabase } from '@/lib/supabase';
 import type {
   Beca,
   BeneficioColaborador,
-  Budget,
-  BudgetLine,
   Candidato,
   Carpeta,
   Colaborador,
   ColaboradorSeguro,
   Contrato,
   ContratoPlantillaCustom,
-  Documento,
   EmpresaBranding,
   ExpedienteArchivo,
-  Expense,
   FideicomisoSaldo,
   Formacion,
   Guardia,
   GuardiasConfig,
-  IncomeMonth,
-  IncomeProjection,
-  Nomina,
-  NominaRegistro,
   NominaSemanalRow,
-  PaymentReminder,
   Prestamo,
   Product,
   SeguroPlan,
@@ -257,15 +248,6 @@ export async function fetchContratoPlantillas(): Promise<ContratoPlantillaCustom
   return (data ?? []) as ContratoPlantillaCustom[];
 }
 
-export async function fetchDocumentos(): Promise<Documento[]> {
-  const { data, error } = await supabase
-    .from('documentos')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as Documento[];
-}
-
 export async function fetchExpedienteArchivos(): Promise<ExpedienteArchivo[]> {
   const { data, error } = await supabase
     .from('expediente_archivos')
@@ -341,81 +323,6 @@ export async function fetchCarpetas(): Promise<Carpeta[]> {
     .order('nombre', { ascending: true });
   if (error) throw error;
   return (data ?? []) as Carpeta[];
-}
-
-export async function fetchExpenses(): Promise<Expense[]> {
-  const { data, error } = await supabase
-    .from('expenses')
-    .select('*')
-    .order('date', { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as Expense[];
-}
-
-export async function fetchPaymentReminders(): Promise<PaymentReminder[]> {
-  const { data, error } = await supabase
-    .from('payment_reminders')
-    .select('*')
-    .order('due_date', { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as PaymentReminder[];
-}
-
-export async function fetchBudgets(): Promise<Budget[]> {
-  const { data, error } = await supabase
-    .from('budgets')
-    .select('*')
-    .order('year', { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as Budget[];
-}
-
-export async function fetchBudgetLines(budgetId: string): Promise<BudgetLine[]> {
-  const { data, error } = await supabase
-    .from('budget_lines')
-    .select('*')
-    .eq('budget_id', budgetId)
-    .order('category', { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as BudgetLine[];
-}
-
-export async function fetchIncomeProjections(): Promise<IncomeProjection[]> {
-  const { data, error } = await supabase
-    .from('income_projections')
-    .select('*')
-    .order('year', { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as IncomeProjection[];
-}
-
-export async function fetchIncomeMonths(projectionId: string): Promise<IncomeMonth[]> {
-  const { data, error } = await supabase
-    .from('income_months')
-    .select('*')
-    .eq('projection_id', projectionId)
-    .order('month', { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as IncomeMonth[];
-}
-
-export async function fetchNominas(): Promise<Nomina[]> {
-  const { data, error } = await supabase
-    .from('nominas')
-    .select('*')
-    .order('fecha_proceso', { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as Nomina[];
-}
-
-export async function fetchNominaRegistros(nominaId: string): Promise<NominaRegistro[]> {
-  const { data, error } = await supabase
-    .from('nomina_registros')
-    .select('*')
-    .eq('nomina_id', nominaId)
-    .order('nombre', { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as NominaRegistro[];
 }
 
 export async function fetchGuardias(): Promise<Guardia[]> {
@@ -668,15 +575,6 @@ export async function fetchNominaSemanalByColaborador(
   return (data ?? null) as NominaSemanalRow | null;
 }
 
-export async function fetchNominaSemanal(): Promise<NominaSemanalRow[]> {
-  const { data, error } = await supabase
-    .from('nomina_semanal')
-    .select('*')
-    .order('orden', { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as NominaSemanalRow[];
-}
-
 export async function updateNominaSemanalRow(
   id: string,
   patch: Record<string, unknown>,
@@ -687,11 +585,6 @@ export async function updateNominaSemanalRow(
 
 export async function createNominaSemanalRow(values: Record<string, unknown>): Promise<void> {
   const { error } = await supabase.from('nomina_semanal').insert(values);
-  if (error) throw error;
-}
-
-export async function deleteNominaSemanalRow(id: string): Promise<void> {
-  const { error } = await supabase.from('nomina_semanal').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -742,17 +635,4 @@ export async function saveBeneficioColaborador(
 export async function deleteBeneficioColaborador(id: string): Promise<void> {
   const { error } = await supabase.from('beneficios_colaborador').delete().eq('id', id);
   if (error) throw error;
-}
-
-// Globales (para el tablero de costo de nómina + beneficios de toda la empresa).
-export async function fetchAllBeneficiosColaborador(): Promise<BeneficioColaborador[]> {
-  const { data, error } = await supabase.from('beneficios_colaborador').select('*');
-  if (error) throw error;
-  return (data ?? []) as BeneficioColaborador[];
-}
-
-export async function fetchAllPrestamos(): Promise<Prestamo[]> {
-  const { data, error } = await supabase.from('prestamos').select('*').eq('estado', 'Activo');
-  if (error) throw error;
-  return (data ?? []) as Prestamo[];
 }

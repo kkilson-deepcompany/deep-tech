@@ -380,49 +380,6 @@ export interface ExpedienteArchivo {
   created_at: string;
 }
 
-export const EXPENSE_STATUSES = ['Programado', 'Pagado', 'Vencido', 'En Revision'] as const;
-export type ExpenseStatus = (typeof EXPENSE_STATUSES)[number];
-
-export const REMINDER_RECURRENCES = [
-  'Unica',
-  'Mensual',
-  'Quincenal',
-  'Trimestral',
-  'Anual',
-] as const;
-export type ReminderRecurrence = (typeof REMINDER_RECURRENCES)[number];
-
-export const REMINDER_STATUSES = ['Programado', 'En Revision', 'Pagado', 'Vencido'] as const;
-export type ReminderStatus = (typeof REMINDER_STATUSES)[number];
-
-export const EXPENSE_STATUS_VARIANT: Record<ExpenseStatus, BadgeTone> = {
-  Programado: 'secondary',
-  Pagado: 'accent',
-  Vencido: 'destructive',
-  'En Revision': 'muted',
-};
-
-export const REMINDER_STATUS_VARIANT: Record<ReminderStatus, BadgeTone> = {
-  Programado: 'secondary',
-  'En Revision': 'muted',
-  Pagado: 'accent',
-  Vencido: 'destructive',
-};
-
-export interface Expense {
-  id: string;
-  date: string;
-  amount: string;
-  currency: Moneda;
-  tasa_bcv: string;
-  category: string;
-  business_line: string;
-  description: string | null;
-  status: ExpenseStatus;
-  responsible: string | null;
-  created_at: string;
-}
-
 // ── Beneficios ───────────────────────────────────────────────────────────────
 export interface SeguroPlan {
   id: string;
@@ -597,35 +554,6 @@ export interface FideicomisoSaldo {
   movimientos: number;
 }
 
-export interface PaymentReminder {
-  id: string;
-  title: string;
-  due_date: string;
-  amount: string;
-  currency: Moneda;
-  responsible: string;
-  recurrence: ReminderRecurrence;
-  status: ReminderStatus;
-  lead_days: number[];
-  notes: string | null;
-  created_at: string;
-}
-
-export const BUDGET_STATUSES = ['Borrador', 'En Revision', 'Aprobado'] as const;
-export type BudgetStatus = (typeof BUDGET_STATUSES)[number];
-
-export const BUDGET_METHODOLOGIES = ['Top-Down', 'Bottom-Up', 'Zero-Based'] as const;
-export type BudgetMethodology = (typeof BUDGET_METHODOLOGIES)[number];
-
-export const BUDGET_LINE_TYPES = ['OpEx', 'CapEx'] as const;
-export type BudgetLineType = (typeof BUDGET_LINE_TYPES)[number];
-
-export const BUDGET_STATUS_VARIANT: Record<BudgetStatus, BadgeTone> = {
-  Borrador: 'muted',
-  'En Revision': 'secondary',
-  Aprobado: 'accent',
-};
-
 /** Etiquetas cortas de los 12 meses (índice 0 = enero). */
 export const MESES = [
   'Ene',
@@ -641,103 +569,6 @@ export const MESES = [
   'Nov',
   'Dic',
 ] as const;
-
-export interface Budget {
-  id: string;
-  year: number;
-  status: BudgetStatus;
-  methodology: BudgetMethodology;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface BudgetLine {
-  id: string;
-  budget_id: string;
-  category: string;
-  item_name: string;
-  type: BudgetLineType;
-  // numeric[] llega como arreglo de strings vía PostgREST.
-  monthly_amounts: string[];
-  total_annual: string;
-  responsible: string | null;
-}
-
-export interface IncomeProjection {
-  id: string;
-  year: number;
-  growth_rate: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface IncomeMonth {
-  id: string;
-  projection_id: string;
-  month: number;
-  projection: string;
-  reality: string;
-}
-
-export const NOMINA_TIPOS = [
-  'Primera Quincena',
-  'Segunda Quincena',
-  'Mensual',
-  'Semanal',
-  'Especial',
-] as const;
-export type NominaTipo = (typeof NOMINA_TIPOS)[number];
-
-export const NOMINA_ESTADOS = ['Borrador', 'Finalizada'] as const;
-export type NominaEstado = (typeof NOMINA_ESTADOS)[number];
-
-export const NOMINA_ESTADO_VARIANT: Record<NominaEstado, BadgeTone> = {
-  Borrador: 'secondary',
-  Finalizada: 'accent',
-};
-
-export interface Nomina {
-  id: string;
-  periodo: string;
-  tipo: NominaTipo;
-  fecha_proceso: string;
-  tasa_bcv: string;
-  total_nomina: string;
-  total_patronal: string;
-  estado: NominaEstado;
-  creado_por: string | null;
-  created_at: string;
-}
-
-export interface NominaRegistro {
-  id: string;
-  nomina_id: string;
-  colaborador_id: string;
-  nombre: string;
-  salario_base: string;
-  frecuencia: FrecuenciaPago;
-  moneda: Moneda;
-  salario_legal_bs: string;
-  bono_usd: string;
-  fideicomiso_usd: string;
-  fideicomiso_bs: string;
-  bono_alimentacion: string;
-  bonificaciones_extras: string;
-  ivss: string;
-  spf: string;
-  faov: string;
-  islr: string;
-  otras_deducciones: string;
-  total_asignaciones: string;
-  total_deducciones: string;
-  neto_a_pagar: string;
-  ivss_patrono: string;
-  spf_patrono: string;
-  faov_patrono: string;
-  inces_patrono: string;
-  pension_patrono: string;
-  costo_total_patrono: string;
-}
 
 export const GUARDIA_ESTADOS = ['Pendiente', 'En Progreso', 'Completado'] as const;
 export type GuardiaEstado = (typeof GUARDIA_ESTADOS)[number];
