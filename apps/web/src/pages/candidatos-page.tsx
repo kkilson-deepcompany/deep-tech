@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileSpreadsheet, Plus, X } from 'lucide-react';
+import { FileSpreadsheet, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { fetchCandidatos, fetchVacantes } from '@/lib/queries';
@@ -75,6 +75,54 @@ export function CandidatosPage() {
       void queryClient.invalidateQueries({ queryKey: ['candidatos'] });
     },
   });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('candidatos').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast.success('Candidato eliminado.');
+      void queryClient.invalidateQueries({ queryKey: ['candidatos'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const bulkDelete = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from('candidatos').delete().in('id', ids);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: (_data, ids) => {
+      setSelected(new Set());
+      toast.success(`${ids.length} candidato${ids.length === 1 ? '' : 's'} eliminado${ids.length === 1 ? '' : 's'}.`);
+      void queryClient.invalidateQueries({ queryKey: ['candidatos'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  async function handleDelete(candidato: Candidato) {
+    if (
+      await dialog.confirm({
+        description: `¿Eliminar a "${candidato.nombre}"? Esta acción no se puede deshacer.`,
+        tone: 'destructive',
+      })
+    ) {
+      remove.mutate(candidato.id);
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (selected.size === 0) return;
+    if (
+      await dialog.confirm({
+        description: `¿Eliminar ${selected.size} candidato(s)? Esta acción no se puede deshacer.`,
+        tone: 'destructive',
+      })
+    ) {
+      bulkDelete.mutate([...selected]);
+    }
+  }
 
   const bulkMove = useMutation({
     mutationFn: async ({ ids, estado }: BulkMoveVars) => {
@@ -164,6 +212,7 @@ export function CandidatosPage() {
           onMove={(id, estado) => move.mutate({ id, estado })}
           selected={selected}
           onToggleSelect={toggleSelect}
+          onDelete={(candidato) => void handleDelete(candidato)}
         />
       )}
 
@@ -214,6 +263,16 @@ export function CandidatosPage() {
               disabled={bulkMove.isPending}
             >
               Rechazar
+            </Button>
+
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => void handleBulkDelete()}
+              disabled={bulkDelete.isPending}
+            >
+              <Trash2 className="size-4" />
+              Eliminar
             </Button>
 
             <Button

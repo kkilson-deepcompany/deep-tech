@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { CANDIDATO_ESTADOS, CANDIDATO_ESTADO_TONE } from '@/lib/domain';
 import type { Candidato, CandidatoEstado } from '@/lib/domain';
 import { cn } from '@/lib/utils';
@@ -12,6 +13,8 @@ interface CandidatoKanbanProps {
   selected: Set<string>;
   /** Toggle del checkbox de un candidato. */
   onToggleSelect: (id: string) => void;
+  /** Eliminar un candidato directo desde su tarjeta. */
+  onDelete: (candidato: Candidato) => void;
 }
 
 /** Tablero kanban del pipeline de candidatos con arrastrar y soltar nativo. */
@@ -22,6 +25,7 @@ export function CandidatoKanban({
   onMove,
   selected,
   onToggleSelect,
+  onDelete,
 }: CandidatoKanbanProps) {
   const [dragOver, setDragOver] = useState<CandidatoEstado | null>(null);
 
@@ -65,7 +69,7 @@ export function CandidatoKanban({
                     onDragStart={(e) => e.dataTransfer.setData('text/plain', candidato.id)}
                     onClick={() => onCardClick(candidato)}
                     className={cn(
-                      'bg-card relative cursor-grab rounded-md border p-3 pr-9 shadow-sm transition-shadow hover:shadow active:cursor-grabbing',
+                      'group bg-card relative cursor-grab rounded-md border p-3 pr-9 pb-6 shadow-sm transition-shadow hover:shadow active:cursor-grabbing',
                       isSel && 'border-primary ring-primary/30 ring-2',
                     )}
                   >
@@ -77,6 +81,17 @@ export function CandidatoKanban({
                       title="Seleccionar"
                       className="accent-primary absolute right-2 top-2 size-4 cursor-pointer"
                     />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(candidato);
+                      }}
+                      title="Eliminar candidato"
+                      className="text-muted-foreground hover:text-destructive absolute right-1.5 bottom-1.5 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
                     <div className="text-sm font-medium leading-tight">{candidato.nombre}</div>
                     {titulo && (
                       <div className="text-muted-foreground mt-0.5 truncate text-xs">{titulo}</div>
