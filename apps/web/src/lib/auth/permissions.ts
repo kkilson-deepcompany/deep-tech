@@ -6,8 +6,7 @@ import type { UserRole } from './types';
  * El auditor entra a todos los módulos (solo lectura; RLS bloquea escrituras).
  *
  * Cambiar aquí NO cambia la seguridad real (esa vive en RLS): esto delimita
- * qué secciones ve y navega cada rol en la UI. Se combina con el PIN por
- * sección (section-context), que es una cortina de privacidad adicional.
+ * qué secciones ve y navega cada rol en la UI.
  */
 const DIRECCION: UserRole[] = ['admin_rrhh', 'director', 'ceo'];
 
