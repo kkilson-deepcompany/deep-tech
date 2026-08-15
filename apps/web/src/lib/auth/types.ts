@@ -8,12 +8,16 @@ export type UserRole =
   | 'coordinador_ops'
   | 'auditor';
 
+/** 'pendiente': se auto-registró y espera aprobación de un admin_rrhh. */
+export type UserStatus = 'pendiente' | 'activo';
+
 /** Fila de `public.profiles` (espejo de `auth.users`). */
 export interface Profile {
   id: string;
   email: string;
   name: string;
   role: UserRole;
+  status: UserStatus;
   picture: string | null;
   created_at: string;
   updated_at: string;

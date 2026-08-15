@@ -10,6 +10,8 @@ import {
 } from '@/lib/auth/permissions';
 import { AppLayout } from '@/components/app-layout';
 import { LoginPage } from '@/pages/login-page';
+import { RegistroPage } from '@/pages/registro-page';
+import { PendienteAprobacionPage } from '@/pages/pendiente-aprobacion-page';
 import { HomePage } from '@/pages/home-page';
 import { MfaSetupPage } from '@/pages/mfa-setup-page';
 import { WelcomePage } from '@/pages/welcome-page';
@@ -37,6 +39,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/registro" element={<RegistroPage />} />
+      <Route path="/pendiente" element={<PendienteAprobacionPage />} />
       <Route path="/mfa-setup" element={<MfaSetupPage />} />
       <Route path="/welcome" element={<WelcomePage />} />
       <Route path="/formulario/:token" element={<FormularioPage />} />

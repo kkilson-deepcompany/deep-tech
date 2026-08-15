@@ -18,6 +18,7 @@ import type { Profile } from './types';
  * - `unauthenticated` sin sesión.
  * - `mfa-setup`       hay sesión pero el usuario no tiene un factor TOTP verificado.
  * - `mfa-required`    hay sesión y un factor verificado, falta superar el reto.
+ * - `pending-approval` la cuenta se auto-registró y espera aprobación admin_rrhh.
  * - `authenticated`   sesión completa en AAL2.
  */
 export type AuthStatus =
@@ -25,6 +26,7 @@ export type AuthStatus =
   | 'unauthenticated'
   | 'mfa-setup'
   | 'mfa-required'
+  | 'pending-approval'
   | 'authenticated';
 
 interface AuthContextValue {
@@ -70,8 +72,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ]);
     if (token !== evalToken.current) return; // una evaluación más nueva ya corrió
 
-    // database.types.ts es un placeholder hasta regenerar tipos desde Supabase.
-    setProfile((profileResult.data as Profile | null) ?? null);
+    const nextProfile = (profileResult.data as Profile | null) ?? null;
+    setProfile(nextProfile);
+
+    // Pendiente de aprobación: no se le pide MFA todavía, solo espera.
+    if (nextProfile?.status === 'pendiente') {
+      setStatus('pending-approval');
+      return;
+    }
 
     const aal = aalResult.data;
     if (aal?.currentLevel === 'aal2') setStatus('authenticated');

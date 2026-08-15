@@ -1,24 +1,13 @@
-// Edge Function: invita a un usuario nuevo (solo admin_rrhh).
+// Edge Function: rechaza una cuenta pendiente de auto-registro (solo admin_rrhh).
 //
-// Crea el usuario en Supabase Auth con `inviteUserByEmail`; el rol y el nombre
-// viajan en user_metadata y el trigger `handle_new_user` crea su fila en
-// `profiles`. El invitado recibe un correo y define su contraseña en /welcome.
+// Borra el usuario en Supabase Auth Y su fila en `profiles` — profiles no
+// tiene borrado en cascada desde auth.users, así que hay que hacer ambos o
+// queda una fila huérfana (el mismo bug que motivó esta limpieza en 0037).
 //
 // verify_jwt está en false (ver supabase/config.toml) para permitir el
 // preflight CORS; la identidad y el rol se validan dentro de la función.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const VALID_ROLES = [
-  'admin_rrhh',
-  'director',
-  'reclutador',
-  'ceo',
-  'cfo',
-  'coordinador_ops',
-  'auditor',
-];
-
-// CORS por allowlist (separada por coma). `supabase secrets set ALLOWED_ORIGINS=...`.
 const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGINS') ?? 'http://localhost:5173')
   .split(',')
   .map((s) => s.trim())
@@ -55,7 +44,6 @@ Deno.serve(async (req: Request) => {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) return json({ error: 'Falta autenticación' }, 401);
 
-  // Cliente con la identidad de quien llama: verifica sesión y rol.
   const caller = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
   });
@@ -65,57 +53,45 @@ Deno.serve(async (req: Request) => {
   } = await caller.auth.getUser();
   if (userError || !user) return json({ error: 'Sesión inválida' }, 401);
 
-  const { data: profile } = await caller
+  const { data: callerProfile } = await caller
     .from('profiles')
-    .select('role')
+    .select('role, status')
     .eq('id', user.id)
     .maybeSingle();
-  if (!profile || profile.role !== 'admin_rrhh') {
+  if (!callerProfile || callerProfile.role !== 'admin_rrhh' || callerProfile.status !== 'activo') {
     return json({ error: 'Requiere rol de administrador RRHH' }, 403);
   }
 
-  let payload: { email?: unknown; name?: unknown; role?: unknown };
+  let payload: { userId?: unknown };
   try {
     payload = await req.json();
   } catch {
     return json({ error: 'Cuerpo de la solicitud inválido' }, 400);
   }
-
-  const email = String(payload.email ?? '')
-    .trim()
-    .toLowerCase();
-  const name = String(payload.name ?? '').trim();
-  const role = String(payload.role ?? '');
-
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'Correo inválido' }, 400);
-  if (name.length < 2) return json({ error: 'El nombre es obligatorio' }, 400);
-  if (!VALID_ROLES.includes(role)) return json({ error: 'Rol inválido' }, 400);
+  const userId = String(payload.userId ?? '');
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) return json({ error: 'userId inválido' }, 400);
 
   const admin = createClient(supabaseUrl, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const origin = req.headers.get('Origin') ?? Deno.env.get('SITE_URL') ?? '';
-  const redirectTo = origin ? `${origin}/welcome` : undefined;
-
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { name, role },
-    redirectTo,
-  });
-
-  if (error) {
-    const message = /already.*registered|already.*exists/i.test(error.message)
-      ? 'Ese correo ya tiene una cuenta.'
-      : error.message;
-    return json({ error: message }, 400);
+  // Solo se rechazan cuentas pendientes: no es una forma de borrar cuentas activas.
+  const { data: target } = await admin
+    .from('profiles')
+    .select('id, status')
+    .eq('id', userId)
+    .maybeSingle();
+  if (!target) return json({ error: 'Cuenta no encontrada' }, 404);
+  if (target.status !== 'pendiente') {
+    return json({ error: 'Solo se pueden rechazar cuentas pendientes de aprobación' }, 400);
   }
 
-  // El trigger handle_new_user crea la fila en profiles como 'pendiente'
-  // siempre (ver 0037) — solo esta función, ya validado el rol admin_rrhh
-  // de quien invita, la promueve a 'activo'.
-  if (data.user?.id) {
-    await admin.from('profiles').update({ status: 'activo' }).eq('id', data.user.id);
-  }
+  const { error: authDeleteError } = await admin.auth.admin.deleteUser(userId);
+  if (authDeleteError) return json({ error: authDeleteError.message }, 400);
 
-  return json({ ok: true, userId: data.user?.id ?? null });
+  // Por si el trigger no llegó a crear la fila (no debería pasar, pero no es
+  // un error si ya no existe).
+  await admin.from('profiles').delete().eq('id', userId);
+
+  return json({ ok: true });
 });

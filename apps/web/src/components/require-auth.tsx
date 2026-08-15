@@ -12,5 +12,6 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (status === 'unauthenticated' || status === 'mfa-required')
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   if (status === 'mfa-setup') return <Navigate to="/mfa-setup" replace />;
+  if (status === 'pending-approval') return <Navigate to="/pendiente" replace />;
   return <>{children}</>;
 }

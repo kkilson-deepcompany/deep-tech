@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { KeyRound, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase';
@@ -128,11 +128,17 @@ export function LoginPage() {
               </div>
               {error && <p className="text-destructive text-sm">{error}</p>}
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex-col gap-3">
               <Button type="submit" className="w-full" disabled={busy}>
                 {busy ? <Spinner className="size-4" /> : <KeyRound />}
                 Entrar
               </Button>
+              <Link
+                to="/registro"
+                className="text-muted-foreground text-center text-xs hover:underline"
+              >
+                ¿No tenés cuenta? Registrate
+              </Link>
             </CardFooter>
           </form>
         ) : (

@@ -1635,6 +1635,7 @@ export type Database = {
           name: string
           picture: string | null
           role: Database["public"]["Enums"]["user_role"]
+          status: Database["public"]["Enums"]["user_status"]
           updated_at: string
         }
         Insert: {
@@ -1644,6 +1645,7 @@ export type Database = {
           name: string
           picture?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
         }
         Update: {
@@ -1653,6 +1655,7 @@ export type Database = {
           name?: string
           picture?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
         }
         Relationships: []
@@ -2335,6 +2338,7 @@ export type Database = {
         | "cfo"
         | "coordinador_ops"
         | "auditor"
+      user_status: "pendiente" | "activo"
       vacante_estado: "Abierta" | "En Proceso" | "Cerrada" | "En Pausa"
     }
     CompositeTypes: {
@@ -2547,6 +2551,7 @@ export const Constants = {
         "coordinador_ops",
         "auditor",
       ],
+      user_status: ["pendiente", "activo"],
       vacante_estado: ["Abierta", "En Proceso", "Cerrada", "En Pausa"],
     },
   },

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FunctionsHttpError } from '@supabase/supabase-js';
-import { UserPlus, X } from 'lucide-react';
+import { Check, UserPlus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { ROLE_LABELS } from '@/lib/auth/types';
@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { useDialog } from '@/lib/dialog-service';
 
 const ROLE_ENTRIES = Object.entries(ROLE_LABELS) as [UserRole, string][];
 
@@ -33,8 +34,62 @@ interface InviteVars {
   role: UserRole;
 }
 
+/** Fila de una cuenta auto-registrada esperando que se le asigne un rol. */
+function PendingRow({
+  pending,
+  onApprove,
+  onReject,
+  busy,
+}: {
+  pending: Profile;
+  onApprove: (id: string, role: UserRole) => void;
+  onReject: (id: string) => void;
+  busy: boolean;
+}) {
+  const [role, setRole] = useState<UserRole>('reclutador');
+
+  return (
+    <tr className="border-b last:border-0">
+      <td className="px-4 py-3 font-medium">{pending.name}</td>
+      <td className="text-muted-foreground px-4 py-3">{pending.email}</td>
+      <td className="px-4 py-3">
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value as UserRole)}
+          disabled={busy}
+          className="border-input bg-background flex h-9 w-full rounded-md border px-2 text-sm"
+        >
+          {ROLE_ENTRIES.map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex justify-end gap-2">
+          <Button size="sm" disabled={busy} onClick={() => onApprove(pending.id, role)}>
+            <Check className="size-4" />
+            Aprobar
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => onReject(pending.id)}
+          >
+            <X className="size-4" />
+            Rechazar
+          </Button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 export function UsuariosPage() {
   const queryClient = useQueryClient();
+  const dialog = useDialog();
   const {
     data: profiles,
     isLoading,
@@ -43,6 +98,9 @@ export function UsuariosPage() {
     queryKey: ['profiles'],
     queryFn: fetchProfiles,
   });
+
+  const pendientes = (profiles ?? []).filter((p) => p.status === 'pendiente');
+  const activos = (profiles ?? []).filter((p) => p.status === 'activo');
 
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
@@ -74,6 +132,53 @@ export function UsuariosPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const approve = useMutation({
+    mutationFn: async ({ id, role: chosenRole }: { id: string; role: UserRole }) => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: chosenRole, status: 'activo' })
+        .eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast.success('Cuenta aprobada.');
+      void queryClient.invalidateQueries({ queryKey: ['profiles'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const reject = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.functions.invoke('reject-user', { body: { userId } });
+      if (error) {
+        let message = 'No se pudo rechazar la cuenta.';
+        if (error instanceof FunctionsHttpError) {
+          const body: unknown = await error.context.json().catch(() => null);
+          if (body && typeof body === 'object' && 'error' in body) {
+            message = String((body as { error: unknown }).error);
+          }
+        }
+        throw new Error(message);
+      }
+    },
+    onSuccess: () => {
+      toast.success('Cuenta rechazada y eliminada.');
+      void queryClient.invalidateQueries({ queryKey: ['profiles'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  async function handleReject(id: string) {
+    if (
+      await dialog.confirm({
+        description: 'Esto elimina la cuenta por completo (no queda registro). ¿Rechazar?',
+        tone: 'destructive',
+      })
+    ) {
+      reject.mutate(id);
+    }
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     invite.mutate({ email: email.trim(), name: name.trim(), role });
@@ -84,7 +189,7 @@ export function UsuariosPage() {
       <PageHeader
         eyebrow="Administración"
         title="Usuarios"
-        description="Invita y consulta las cuentas con acceso al sistema."
+        description="Invita, aprueba auto-registros y consulta las cuentas con acceso al sistema."
         action={
           <Button variant={showForm ? 'outline' : 'default'} onClick={() => setShowForm((v) => !v)}>
             {showForm ? <X /> : <UserPlus />}
@@ -138,6 +243,46 @@ export function UsuariosPage() {
         </Card>
       )}
 
+      {!isLoading && pendientes.length > 0 && (
+        <Card className="border-amber-500/40">
+          <CardContent className="p-0">
+            <div className="border-b px-4 py-3">
+              <h2 className="text-sm font-semibold">
+                Pendientes de aprobación{' '}
+                <Badge variant="muted" className="ml-1">
+                  {pendientes.length}
+                </Badge>
+              </h2>
+              <p className="text-muted-foreground text-xs">
+                Se auto-registraron por /registro. Elegí un rol y aprobá, o rechazá para
+                eliminarlas.
+              </p>
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-muted-foreground border-b text-left">
+                  <th className="px-4 py-2 font-medium">Nombre</th>
+                  <th className="px-4 py-2 font-medium">Correo</th>
+                  <th className="px-4 py-2 font-medium">Rol a asignar</th>
+                  <th className="px-4 py-2 font-medium" />
+                </tr>
+              </thead>
+              <tbody>
+                {pendientes.map((p) => (
+                  <PendingRow
+                    key={p.id}
+                    pending={p}
+                    onApprove={(id, chosenRole) => approve.mutate({ id, role: chosenRole })}
+                    onReject={(id) => void handleReject(id)}
+                    busy={approve.isPending || reject.isPending}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
@@ -161,7 +306,7 @@ export function UsuariosPage() {
                 </tr>
               </thead>
               <tbody>
-                {(profiles ?? []).map((p) => (
+                {activos.map((p) => (
                   <tr key={p.id} className="border-b last:border-0">
                     <td className="px-4 py-3 font-medium">{p.name}</td>
                     <td className="text-muted-foreground px-4 py-3">{p.email}</td>
@@ -173,7 +318,7 @@ export function UsuariosPage() {
                     </td>
                   </tr>
                 ))}
-                {profiles?.length === 0 && (
+                {activos.length === 0 && (
                   <tr>
                     <td colSpan={4} className="text-muted-foreground px-4 py-8 text-center">
                       Aún no hay usuarios. Invita al primero.
