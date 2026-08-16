@@ -13,7 +13,6 @@ import { LoginPage } from '@/pages/login-page';
 import { RegistroPage } from '@/pages/registro-page';
 import { PendienteAprobacionPage } from '@/pages/pendiente-aprobacion-page';
 import { HomePage } from '@/pages/home-page';
-import { MfaSetupPage } from '@/pages/mfa-setup-page';
 import { WelcomePage } from '@/pages/welcome-page';
 import { FormularioPage } from '@/pages/formulario-page';
 import { ReservarPage } from '@/pages/reservar-page';
@@ -41,7 +40,6 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/registro" element={<RegistroPage />} />
       <Route path="/pendiente" element={<PendienteAprobacionPage />} />
-      <Route path="/mfa-setup" element={<MfaSetupPage />} />
       <Route path="/welcome" element={<WelcomePage />} />
       <Route path="/formulario/:token" element={<FormularioPage />} />
       <Route path="/reservar/:vacanteId" element={<ReservarPage />} />

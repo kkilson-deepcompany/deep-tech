@@ -16,18 +16,10 @@ import type { Profile } from './types';
  * Estados posibles de la sesión:
  * - `loading`         arranque, aún sin resolver la sesión almacenada.
  * - `unauthenticated` sin sesión.
- * - `mfa-setup`       hay sesión pero el usuario no tiene un factor TOTP verificado.
- * - `mfa-required`    hay sesión y un factor verificado, falta superar el reto.
  * - `pending-approval` la cuenta se auto-registró y espera aprobación admin_rrhh.
- * - `authenticated`   sesión completa en AAL2.
+ * - `authenticated`   sesión con contraseña válida.
  */
-export type AuthStatus =
-  | 'loading'
-  | 'unauthenticated'
-  | 'mfa-setup'
-  | 'mfa-required'
-  | 'pending-approval'
-  | 'authenticated';
+export type AuthStatus = 'loading' | 'unauthenticated' | 'pending-approval' | 'authenticated';
 
 interface AuthContextValue {
   status: AuthStatus;
@@ -36,7 +28,7 @@ interface AuthContextValue {
   profile: Profile | null;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
-  /** Re-evalúa AAL y perfil (usar tras inscribir o verificar MFA). */
+  /** Re-evalúa el perfil (usar tras aprobar una cuenta pendiente, por ejemplo). */
   reload: () => Promise<void>;
 }
 
@@ -66,25 +58,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus('unauthenticated');
       return;
     }
-    const [aalResult, profileResult] = await Promise.all([
-      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
-      supabase.from('profiles').select('*').eq('id', current.user.id).maybeSingle(),
-    ]);
+    const profileResult = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', current.user.id)
+      .maybeSingle();
     if (token !== evalToken.current) return; // una evaluación más nueva ya corrió
 
     const nextProfile = (profileResult.data as Profile | null) ?? null;
     setProfile(nextProfile);
 
-    // Pendiente de aprobación: no se le pide MFA todavía, solo espera.
-    if (nextProfile?.status === 'pendiente') {
-      setStatus('pending-approval');
-      return;
-    }
-
-    const aal = aalResult.data;
-    if (aal?.currentLevel === 'aal2') setStatus('authenticated');
-    else if (aal?.nextLevel === 'aal2') setStatus('mfa-required');
-    else setStatus('mfa-setup');
+    setStatus(nextProfile?.status === 'pendiente' ? 'pending-approval' : 'authenticated');
   }, []);
 
   // Suscripción única: `INITIAL_SESSION` entrega la sesión almacenada al arrancar.
@@ -96,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // Evalúa al arrancar y cada vez que cambia el token (login, refresh, MFA).
+  // Evalúa al arrancar y cada vez que cambia el token (login, refresh).
   useEffect(() => {
     if (!bootstrapped) return;
     void evaluate(session);

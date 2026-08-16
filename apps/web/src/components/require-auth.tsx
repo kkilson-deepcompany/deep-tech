@@ -3,15 +3,14 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/auth/auth-context';
 import { FullScreenLoader } from '@/components/ui/spinner';
 
-/** Protege rutas: exige sesión completa en AAL2 (login + MFA). */
+/** Protege rutas: exige sesión con contraseña válida. */
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { status } = useAuth();
   const location = useLocation();
 
   if (status === 'loading') return <FullScreenLoader />;
-  if (status === 'unauthenticated' || status === 'mfa-required')
+  if (status === 'unauthenticated')
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  if (status === 'mfa-setup') return <Navigate to="/mfa-setup" replace />;
   if (status === 'pending-approval') return <Navigate to="/pendiente" replace />;
   return <>{children}</>;
 }

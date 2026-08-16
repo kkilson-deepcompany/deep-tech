@@ -50,7 +50,6 @@ export function WelcomePage() {
       setError('No se pudo guardar la contraseña. El enlace pudo expirar.');
       return;
     }
-    // Con sesión y sin factor MFA, RequireAuth llevará a /mfa-setup.
     navigate('/dashboard', { replace: true });
   }
 
