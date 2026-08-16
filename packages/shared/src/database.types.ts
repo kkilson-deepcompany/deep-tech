@@ -2175,6 +2175,7 @@ export type Database = {
         Args: { p_form_data: Json; p_intent: string; p_token: string }
         Returns: string
       }
+      email_ya_registrado: { Args: { p_email: string }; Returns: boolean }
       kover_token_is_active: { Args: { p_token: string }; Returns: boolean }
       next_service_order_number: {
         Args: { p_empresa: string }

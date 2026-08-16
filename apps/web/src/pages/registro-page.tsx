@@ -53,6 +53,25 @@ export function RegistroPage() {
     }
 
     setBusy(true);
+
+    // Chequeo previo obligatorio: reintentar signUp() sobre un correo que ya
+    // tiene fila en profiles puede hacer que Supabase borre la cuenta vieja
+    // al fallar por el conflicto de profiles_email_unique (incidente real,
+    // ver migración 0038). Nunca hay que dejar que signUp() se entere solo.
+    const { data: yaExiste, error: checkError } = await supabase.rpc('email_ya_registrado', {
+      p_email: trimmedEmail,
+    });
+    if (checkError) {
+      setBusy(false);
+      setError('No se pudo verificar el correo. Intenta de nuevo.');
+      return;
+    }
+    if (yaExiste) {
+      setBusy(false);
+      setError('Ese correo ya tiene una cuenta.');
+      return;
+    }
+
     const { error: signUpError } = await supabase.auth.signUp({
       email: trimmedEmail,
       password,
